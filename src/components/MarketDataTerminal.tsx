@@ -16,9 +16,10 @@ const MarketDataTerminal: React.FC<MarketDataTerminalProps> = ({
   interactive = true 
 }) => {
   const initialLines = [
-    "Welcome to ComplianceResearch Terminal v1.0",
-    "Loading research database...",
-    "Loading complete.",
+    "ComplianceResearch Terminal v1.0.3 (build 20240322)",
+    "Copyright (c) 2024 ReportCase Inc. All rights reserved.",
+    "Loading research database... Done.",
+    "Connected to secureresearch.reportcase.com:22 via SSH",
     "Type 'help' to see available commands."
   ];
 
@@ -74,7 +75,7 @@ const MarketDataTerminal: React.FC<MarketDataTerminalProps> = ({
         className={cn(className)}
         interactive={interactive}
         onCommand={handleCommand}
-        promptText="research@reportcase:~"
+        promptText="research@reportcase:~$"
       />
       
       <VisualizationModal

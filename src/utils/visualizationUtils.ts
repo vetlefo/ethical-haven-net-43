@@ -32,6 +32,8 @@ function createPainPointsRadarChart(containerId: string, data: VisualizationData
     .append("svg")
     .attr("width", width)
     .attr("height", height)
+    .attr("viewBox", `0 0 ${width} ${height}`)
+    .attr("style", "width: 100%; height: auto; max-height: 500px;")
     .append("g")
     .attr("transform", `translate(${width/2},${height/2})`);
 
@@ -108,8 +110,7 @@ function createPainPointsRadarChart(containerId: string, data: VisualizationData
     .attr("d", line)
     .style("fill", `${colorPrimary}40`) // With transparency
     .style("stroke", colorPrimary)
-    .style("stroke-width", 2)
-    .style("filter", "url(#glow)"); // Add glow effect
+    .style("stroke-width", 2);
   
   // Add points at each vertex
   svg.selectAll(".dot")
@@ -123,21 +124,6 @@ function createPainPointsRadarChart(containerId: string, data: VisualizationData
     .style("fill", colorPrimary)
     .style("stroke", "#FFFFFF")
     .style("stroke-width", 2);
-  
-  // Add glow filter
-  const defs = svg.append("defs");
-  const filter = defs.append("filter")
-    .attr("id", "glow");
-  
-  filter.append("feGaussianBlur")
-    .attr("stdDeviation", "2.5")
-    .attr("result", "coloredBlur");
-  
-  const feMerge = filter.append("feMerge");
-  feMerge.append("feMergeNode")
-    .attr("in", "coloredBlur");
-  feMerge.append("feMergeNode")
-    .attr("in", "SourceGraphic");
   
   // Add interactive tooltips
   svg.selectAll(".dot")

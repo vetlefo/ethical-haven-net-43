@@ -12,7 +12,7 @@ export const researchCategories: ResearchDataCategory[] = [
   {
     name: "market",
     description: "Global compliance market size and projections",
-    commands: ["show market", "market data", "market size"],
+    commands: ["market", "market-data", "cat market.json", "less market.json"],
     data: [
       "Market analysis initiated",
       "Analyzing compliance software market...",
@@ -28,7 +28,7 @@ export const researchCategories: ResearchDataCategory[] = [
   {
     name: "growth",
     description: "Fastest growing compliance markets",
-    commands: ["show growth", "growth regions", "growth data"],
+    commands: ["growth", "growth-regions", "cat growth.json", "less growth.json"],
     data: [
       "Analyzing high-growth regions...",
       "Southeast Asia Growth Leaders:",
@@ -43,7 +43,7 @@ export const researchCategories: ResearchDataCategory[] = [
   {
     name: "regulations",
     description: "Regulatory landscape overview",
-    commands: ["show regulations", "regulatory data", "compliance requirements"],
+    commands: ["regulations", "regulatory-data", "cat regulations.json", "less regulations.json"],
     data: [
       "Analyzing regulatory landscape...",
       "Key regulatory frameworks affecting global compliance:",
@@ -60,7 +60,7 @@ export const researchCategories: ResearchDataCategory[] = [
   {
     name: "competitors",
     description: "Competitor landscape analysis",
-    commands: ["show competitors", "competitor analysis", "market players"],
+    commands: ["competitors", "cat competitors.json", "grep \"market share\" ./data/"],
     data: [
       "Analyzing competitor landscape...",
       "Major players by market share:",
@@ -77,7 +77,7 @@ export const researchCategories: ResearchDataCategory[] = [
   {
     name: "roi",
     description: "Return on investment data for compliance solutions",
-    commands: ["show roi", "investment returns", "value proposition"],
+    commands: ["roi", "cat investment-returns.json", "analyze-roi --verbose"],
     data: [
       "Calculating ROI metrics for compliance implementations...",
       "Average ROI findings:",
@@ -96,7 +96,7 @@ export const researchCategories: ResearchDataCategory[] = [
   {
     name: "help",
     description: "Available research commands",
-    commands: ["help", "commands", "?"],
+    commands: ["help", "commands", "?", "--help", "man", "./research.sh --help"],
     data: [
       "Available research commands:",
       "",
@@ -105,7 +105,7 @@ export const researchCategories: ResearchDataCategory[] = [
       "regulations - Regulatory landscape overview", 
       "competitors - Competitor landscape analysis",
       "roi - Return on investment data for compliance solutions",
-      "visualize pain-points - Interactive radar chart of key market pain points",
+      "viz pain-points - Interactive radar chart of key market pain points",
       "clear - Clear the terminal",
       "help - Show this help message",
       "",
@@ -115,7 +115,7 @@ export const researchCategories: ResearchDataCategory[] = [
   {
     name: "visualize",
     description: "Visualize market research data",
-    commands: ["visualize pain-points", "show pain-points", "pain points chart"],
+    commands: ["viz pain-points", "visualize pain-points", "render --type=radar --data=pain-points"],
     data: [
       "Preparing visualization...",
       "Generating pain points radar chart...",
