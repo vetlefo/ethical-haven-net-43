@@ -4,6 +4,8 @@ export interface ResearchDataCategory {
   description: string;
   commands: string[];
   data: string[];
+  hasVisualization?: boolean;
+  visualizationType?: string;
 }
 
 export const researchCategories: ResearchDataCategory[] = [
@@ -103,11 +105,25 @@ export const researchCategories: ResearchDataCategory[] = [
       "regulations - Regulatory landscape overview", 
       "competitors - Competitor landscape analysis",
       "roi - Return on investment data for compliance solutions",
+      "visualize pain-points - Interactive radar chart of key market pain points",
       "clear - Clear the terminal",
       "help - Show this help message",
       "",
       "Type a command to continue..."
     ]
+  },
+  {
+    name: "visualize",
+    description: "Visualize market research data",
+    commands: ["visualize pain-points", "show pain-points", "pain points chart"],
+    data: [
+      "Preparing visualization...",
+      "Generating pain points radar chart...",
+      "",
+      "Display ready. Opening visualization modal."
+    ],
+    hasVisualization: true,
+    visualizationType: "radar"
   }
 ];
 

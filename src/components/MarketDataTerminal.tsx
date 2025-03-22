@@ -3,6 +3,8 @@ import React, { useState, useEffect } from 'react';
 import Terminal from './Terminal';
 import { cn } from '@/lib/utils';
 import { findResearchCategory, getDefaultResponse, researchCategories } from '@/utils/researchData';
+import VisualizationModal from './VisualizationModal';
+import { painPointsData } from '@/utils/visualizationData';
 
 interface MarketDataTerminalProps {
   className?: string;
@@ -21,6 +23,9 @@ const MarketDataTerminal: React.FC<MarketDataTerminalProps> = ({
   ];
 
   const [terminalLines, setTerminalLines] = useState<string[]>(initialLines);
+  const [isVisModalOpen, setIsVisModalOpen] = useState(false);
+  const [visModalTitle, setVisModalTitle] = useState("");
+  const [visModalType, setVisModalType] = useState("");
 
   const handleCommand = (command: string) => {
     // Handle special command: clear
@@ -41,6 +46,16 @@ const MarketDataTerminal: React.FC<MarketDataTerminalProps> = ({
       // Add the response with a small delay
       setTimeout(() => {
         setTerminalLines(prev => [...prev, ...response]);
+        
+        // If this category has a visualization, open the modal
+        if (category.hasVisualization) {
+          // Open the visualization modal
+          if (command.includes('pain-points')) {
+            setVisModalTitle("Market Pain Points Analysis");
+            setVisModalType("radar");
+            setIsVisModalOpen(true);
+          }
+        }
       }, 300);
     } else {
       // Default response for unrecognized commands
@@ -51,15 +66,25 @@ const MarketDataTerminal: React.FC<MarketDataTerminalProps> = ({
   };
 
   return (
-    <Terminal
-      lines={terminalLines}
-      typingSpeed={15}
-      startDelay={500}
-      className={cn(className)}
-      interactive={interactive}
-      onCommand={handleCommand}
-      promptText="research@reportcase:~"
-    />
+    <>
+      <Terminal
+        lines={terminalLines}
+        typingSpeed={15}
+        startDelay={500}
+        className={cn(className)}
+        interactive={interactive}
+        onCommand={handleCommand}
+        promptText="research@reportcase:~"
+      />
+      
+      <VisualizationModal
+        isOpen={isVisModalOpen}
+        onClose={() => setIsVisModalOpen(false)}
+        title={visModalTitle}
+        visualizationType={visModalType}
+        data={painPointsData}
+      />
+    </>
   );
 };
 
