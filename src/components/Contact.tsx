@@ -1,6 +1,6 @@
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Mail, Phone, MapPin, Send, Check } from 'lucide-react';
+import { Mail, Phone, MapPin, Send, Check, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const Contact: React.FC = () => {
