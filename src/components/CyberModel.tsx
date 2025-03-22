@@ -48,14 +48,14 @@ const CyberShield = () => {
       
       {/* Orbiting elements */}
       <group ref={orbitRef}>
-        {/* Data packets orbiting the shield */}
-        {[...Array(8)].map((_, i) => {
+        {/* Data packets orbiting the shield - using primitive meshes for compatibility */}
+        {Array.from({ length: 8 }).map((_, i) => {
           const angle = (i / 8) * Math.PI * 2;
           const x = Math.cos(angle) * 2.5;
           const z = Math.sin(angle) * 2.5;
           return (
-            <mesh key={i} position={[x, 0, z]} scale={0.1}>
-              <boxGeometry args={[1, 1, 1]} />
+            <mesh key={i} position={[x, 0, z]}>
+              <boxGeometry args={[0.1, 0.1, 0.1]} />
               <meshStandardMaterial color="#0ea5e9" emissive="#0ea5e9" emissiveIntensity={0.5} />
             </mesh>
           );
