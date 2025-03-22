@@ -6,10 +6,10 @@ import { cn } from '@/lib/utils';
 const Contact: React.FC = () => {
   const sectionRef = useRef<HTMLElement>(null);
   const [formState, setFormState] = useState({
-    name: '',
-    email: '',
-    subject: '',
-    message: '',
+    name: 'C M',
+    email: 'cm@majn.com',
+    subject: 'okei wtf',
+    message: 'greit... mandag',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -71,19 +71,19 @@ const Contact: React.FC = () => {
     {
       icon: Mail,
       label: "Email",
-      value: "contact@cybersecure.com",
-      href: "mailto:contact@cybersecure.com"
+      value: "letstalk@reportcase.com",
+      href: "mailto:letstalk@reportcase.com"
     },
     {
       icon: Phone,
       label: "Phone",
-      value: "+1 (555) 123-4567",
-      href: "tel:+15551234567"
+      value: "+47 938 25 762",
+      href: "tel:+4793825762"
     },
     {
       icon: MapPin,
       label: "Office",
-      value: "San Francisco, CA, USA",
+      value: "Sandviken, Bergen, Norway",
       href: "#"
     }
   ];
