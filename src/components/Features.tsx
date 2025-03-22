@@ -271,18 +271,7 @@ const Features: React.FC = () => {
                     ))}
                   </ul>
                 </div>
-                <div className="rounded-lg overflow-hidden shadow-lg glass-card p-4">
-                  {showTerminal && (
-                    <Terminal 
-                      lines={getTerminalCommands(activeTab)}
-                      typingSpeed={15}
-                      startDelay={100}
-                      className="mb-4 h-[150px]"
-                      interactive={false}
-                      promptText="researcher@reportcase:~$"
-                    />
-                  )}
-                  
+                <div className="rounded-lg overflow-hidden shadow-lg glass-card p-4 relative">
                   <div 
                     id="tab-visualization" 
                     ref={visualizationRef}
@@ -295,6 +284,29 @@ const Features: React.FC = () => {
                       <div className="text-cyber-blue animate-pulse">Loading visualization...</div>
                     )}
                   </div>
+                  
+                  {showTerminal && (
+                    <div 
+                      className={cn(
+                        "absolute left-0 right-0 bottom-0 z-10 transform transition-transform duration-500 ease-out",
+                        showVisualization ? "translate-y-[70%] hover:translate-y-[0%]" : "translate-y-0"
+                      )}
+                    >
+                      <Terminal 
+                        lines={getTerminalCommands(activeTab)}
+                        typingSpeed={10}
+                        startDelay={100}
+                        className="mb-0 rounded-b-lg bg-cyber-dark/80 backdrop-blur-sm border-t border-cyber-blue/30"
+                        interactive={false}
+                        promptText="researcher@reportcase:~$"
+                        colors={{
+                          prompt: "#0ea5e9",
+                          command: "#f8fafc",
+                          comment: "#8B5CF6"
+                        }}
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
             </TabsContent>

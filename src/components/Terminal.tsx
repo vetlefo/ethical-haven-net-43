@@ -10,6 +10,11 @@ interface TerminalProps {
   interactive?: boolean;
   onCommand?: (command: string) => void;
   promptText?: string;
+  colors?: {
+    prompt?: string;
+    command?: string;
+    comment?: string;
+  };
 }
 
 const Terminal: React.FC<TerminalProps> = ({
@@ -20,6 +25,11 @@ const Terminal: React.FC<TerminalProps> = ({
   interactive = false,
   onCommand,
   promptText = "cybersecure@terminal:~",
+  colors = {
+    prompt: "#0ea5e9",
+    command: "#f8fafc",
+    comment: "#8B5CF6"
+  }
 }) => {
   const [displayedLines, setDisplayedLines] = useState<string[]>([]);
   const [currentLine, setCurrentLine] = useState(0);
@@ -113,17 +123,25 @@ const Terminal: React.FC<TerminalProps> = ({
     }
   };
 
+  // Format line based on content
+  const formatLine = (line: string) => {
+    if (line.startsWith('#')) {
+      return <span style={{ color: colors.comment }}>{line}</span>;
+    }
+    return line;
+  };
+
   return (
     <div 
       className={cn(
-        "glass-card font-mono text-left p-4 sm:p-6 overflow-hidden text-sm sm:text-base",
+        "font-mono text-left p-4 sm:p-6 overflow-hidden text-sm sm:text-base",
         interactive && "h-[400px] sm:h-[500px] flex flex-col",
         className
       )}
       onClick={focusInput}
       ref={terminalRef}
     >
-      <div className="flex items-center space-x-2 mb-4">
+      <div className="flex items-center space-x-2 mb-2">
         <div className="w-3 h-3 rounded-full bg-red-500"></div>
         <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
         <div className="w-3 h-3 rounded-full bg-green-500"></div>
@@ -137,7 +155,7 @@ const Terminal: React.FC<TerminalProps> = ({
               line
             ) : (
               <>
-                <span className="text-cyber-blue mr-2">$</span> {line}
+                <span style={{ color: colors.prompt }} className="mr-2">$</span> {formatLine(line)}
               </>
             )}
           </div>
@@ -145,7 +163,10 @@ const Terminal: React.FC<TerminalProps> = ({
         
         {currentLine < lines.length && (
           <div>
-            <span className="text-cyber-blue mr-2">$</span> {lines[currentLine].substring(0, displayedChars)}
+            <span style={{ color: colors.prompt }} className="mr-2">$</span> 
+            <span style={{ color: colors.command }}>
+              {formatLine(lines[currentLine].substring(0, displayedChars))}
+            </span>
             {cursor ? <span className="animate-pulse">_</span> : <span> </span>}
           </div>
         )}
@@ -153,7 +174,7 @@ const Terminal: React.FC<TerminalProps> = ({
       
       {interactive && initialTypingComplete && (
         <form onSubmit={handleInputSubmit} className="mt-auto flex items-center border-t border-cyber-blue/20 pt-3">
-          <span className="text-cyber-blue mr-2">$</span>
+          <span style={{ color: colors.prompt }} className="mr-2">$</span>
           <input
             ref={inputRef}
             type="text"
