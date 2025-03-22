@@ -1,6 +1,6 @@
 
 import React, { useEffect, useRef } from 'react';
-import { Shield, Search, Lock, AlertTriangle, FileWarning, Wifi } from 'lucide-react';
+import { Shield, FileText, Globe, User, Database, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const Services: React.FC = () => {
@@ -32,39 +32,39 @@ const Services: React.FC = () => {
   const services = [
     {
       icon: Shield,
-      title: "Web Application Security",
-      description: "Comprehensive assessments to identify and remediate vulnerabilities in your web applications and APIs.",
-      features: ["OWASP Top 10 Protection", "API Security Testing", "Secure Code Review"]
+      title: "Whistleblowing & Incident Reporting",
+      description: "Secure, anonymous reporting channels that comply with EU Whistleblower Directive, SOX, and Dodd-Frank requirements.",
+      features: ["Anonymous Reporting", "Multi-channel Submission", "Case Management", "Anti-retaliation Controls"]
     },
     {
-      icon: Wifi,
-      title: "Network Security Testing",
-      description: "Thorough evaluation of network infrastructure to identify and address security weaknesses.",
-      features: ["Firewall Configuration Audit", "VPN Security", "Network Segmentation Review"]
+      icon: FileText,
+      title: "ESG Reporting",
+      description: "Comprehensive ESG data collection, analysis, and reporting across global and regional frameworks.",
+      features: ["Framework Mapping (GRI, TCFD)", "Supply Chain ESG Monitoring", "Automated Data Collection", "Stakeholder Reports"]
     },
     {
-      icon: Search,
-      title: "Penetration Testing",
-      description: "Authorized simulated attacks to identify exploitable vulnerabilities in your systems.",
-      features: ["External Penetration Tests", "Internal Network Testing", "Wireless Security Assessment"]
+      icon: Database,
+      title: "Regulatory Compliance",
+      description: "Stay on top of evolving regulations across multiple jurisdictions with automated updates and controls.",
+      features: ["GDPR Compliance Tools", "CCPA/CPRA Controls", "Regulatory Updates", "Compliance Dashboards"]
     },
     {
-      icon: AlertTriangle,
-      title: "Red Team Operations",
-      description: "Advanced adversary simulation to test your defenses against sophisticated attack scenarios.",
-      features: ["Social Engineering Tests", "Physical Security Testing", "Advanced Persistence Testing"]
+      icon: User,
+      title: "HR Compliance",
+      description: "Manage global workforce compliance with employment laws and regulations across jurisdictions.",
+      features: ["Global Labor Law Updates", "HR Policy Management", "Training Tracking", "Documentation Controls"]
     },
     {
-      icon: FileWarning,
-      title: "Security Documentation",
-      description: "Creation and review of security policies, procedures and compliance documentation.",
-      features: ["Policy Development", "Compliance Gap Analysis", "Security Training Materials"]
+      icon: Globe,
+      title: "Regional Compliance",
+      description: "Specialized modules for region-specific regulations and reporting requirements.",
+      features: ["EU Compliance", "US Regulations", "APAC Requirements", "African ESG Standards"]
     },
     {
       icon: Lock,
-      title: "Incident Response",
-      description: "Expert assistance in responding to and recovering from security incidents and breaches.",
-      features: ["Breach Investigation", "Evidence Collection", "Recovery Planning"]
+      title: "Data Protection & Privacy",
+      description: "Comprehensive tools for managing data protection compliance across global privacy regulations.",
+      features: ["Rights Management", "Consent Controls", "Data Mapping", "Breach Response"]
     }
   ];
 
@@ -72,19 +72,19 @@ const Services: React.FC = () => {
     <section 
       id="services" 
       ref={sectionRef}
-      className="py-20 px-6 bg-cyber-dark/50 relative reveal-section"
+      className="py-20 px-6 bg-cyber-dark/50 relative"
     >
       <div className="container mx-auto">
         <div className="text-center mb-16 space-y-3">
           <div className="inline-block px-4 py-1 rounded-full bg-cyber-blue/10 border border-cyber-blue/20 text-cyber-blue text-sm font-medium">
-            Services
+            Solutions
           </div>
           <h2 className="font-bold">
-            Comprehensive <span className="gradient-text">Security</span> Solutions
+            Comprehensive <span className="gradient-text">Compliance</span> Solutions
           </h2>
           <p className="text-cyber-light/70 max-w-2xl mx-auto text-lg">
-            I provide a full range of cybersecurity services designed to protect your
-            organization from evolving digital threats and ensure your systems remain secure.
+            ReportCase.com provides tailored solutions to address complex compliance 
+            requirements across industries and regions.
           </p>
         </div>
 
@@ -123,13 +123,13 @@ const Services: React.FC = () => {
 
         <div className="mt-16 text-center">
           <p className="text-cyber-light/70 mb-6 max-w-2xl mx-auto">
-            Need a custom security solution for your specific requirements?
+            Need a custom compliance solution for your specific requirements?
           </p>
           <button 
             className="cyber-button"
             onClick={() => document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' })}
           >
-            Request Custom Service
+            Request Custom Solution
           </button>
         </div>
       </div>

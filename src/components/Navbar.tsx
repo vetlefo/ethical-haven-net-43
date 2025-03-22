@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Menu, X, Shield, ChevronRight } from 'lucide-react';
+import { Menu, X, FileText, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const Navbar = () => {
@@ -40,7 +40,9 @@ const Navbar = () => {
 
   const navLinks = [
     { name: 'About', id: 'about' },
-    { name: 'Services', id: 'services' },
+    { name: 'Solutions', id: 'services' },
+    { name: 'Features', id: 'features' },
+    { name: 'Regional', id: 'regional' },
     { name: 'Contact', id: 'contact' },
   ];
 
@@ -57,9 +59,9 @@ const Navbar = () => {
         <div className="flex items-center justify-between">
           {/* Logo */}
           <div className="flex items-center space-x-2">
-            <Shield className="h-8 w-8 text-cyber-blue animate-pulse-slow" />
+            <FileText className="h-8 w-8 text-cyber-blue animate-pulse-slow" />
             <span className="text-xl font-semibold">
-              Cyber<span className="text-cyber-blue">Secure</span>
+              Report<span className="text-cyber-blue">Case</span>
             </span>
           </div>
 
@@ -79,7 +81,7 @@ const Navbar = () => {
               className="cyber-button"
               onClick={() => scrollToSection('contact')}
             >
-              Get In Touch
+              Request Demo
               <ChevronRight className="ml-1 h-4 w-4 inline" />
             </button>
           </div>
@@ -116,7 +118,7 @@ const Navbar = () => {
             className="cyber-button w-full mt-8 text-center"
             onClick={() => scrollToSection('contact')}
           >
-            Get In Touch
+            Request Demo
           </button>
         </div>
       </div>

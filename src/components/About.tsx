@@ -1,6 +1,6 @@
 
 import React, { useEffect, useRef } from 'react';
-import { Shield, Lock, Terminal, Server, Database } from 'lucide-react';
+import { Shield, Globe, FileText, User, Database, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const About: React.FC = () => {
@@ -32,28 +32,28 @@ const About: React.FC = () => {
   const expertise = [
     {
       icon: Shield,
-      title: "Penetration Testing",
-      description: "Authorized simulated attacks to identify security vulnerabilities before malicious actors can exploit them."
+      title: "Whistleblower Protection",
+      description: "Secure channels for confidential and anonymous reporting, compliant with EU Whistleblower Directive and US regulations."
     },
     {
-      icon: Lock,
-      title: "Security Audits",
-      description: "Comprehensive assessment of your security controls, policies, and infrastructure to ensure robust protection."
+      icon: FileText,
+      title: "ESG Reporting",
+      description: "Comprehensive tools for environmental, social, and governance reporting across global frameworks and regional standards."
     },
     {
-      icon: Terminal,
-      title: "Vulnerability Assessment",
-      description: "Systematic review of security weaknesses in your systems and applications with actionable remediation plans."
+      icon: Globe,
+      title: "Multi-Jurisdictional Compliance",
+      description: "Stay compliant with regulations across Europe, US, Asia, and Africa with region-specific controls and guidance."
     },
     {
-      icon: Server,
-      title: "Network Security",
-      description: "Protection against unauthorized access, misuse, and modification of your network resources and communications."
+      icon: User,
+      title: "HR Compliance",
+      description: "Manage global workforce compliance with employment laws, including data protection and labor regulations."
     },
     {
       icon: Database,
       title: "Data Protection",
-      description: "Implementing strategies to safeguard sensitive information from breaches and unauthorized access."
+      description: "GDPR, CCPA/CPRA, and international data privacy compliance with robust security controls and user rights management."
     }
   ];
 
@@ -61,20 +61,19 @@ const About: React.FC = () => {
     <section 
       id="about" 
       ref={sectionRef}
-      className="py-20 px-6 relative reveal-section"
+      className="py-20 px-6 relative"
     >
       <div className="container mx-auto">
         <div className="text-center mb-16 space-y-3">
           <div className="inline-block px-4 py-1 rounded-full bg-cyber-blue/10 border border-cyber-blue/20 text-cyber-blue text-sm font-medium">
-            About
+            About ReportCase.com
           </div>
           <h2 className="font-bold">
-            Expert <span className="gradient-text">Cybersecurity</span> Solutions
+            International <span className="gradient-text">Compliance</span> Platform
           </h2>
           <p className="text-cyber-light/70 max-w-2xl mx-auto text-lg">
-            With over a decade of experience in ethical hacking and cybersecurity, 
-            I provide specialized services tailored to protect your organization's 
-            most valuable digital assets.
+            ReportCase.com provides a comprehensive solution for organizations to manage compliance 
+            across multiple jurisdictions, from whistleblowing to ESG reporting and data protection.
           </p>
         </div>
 
@@ -98,15 +97,15 @@ const About: React.FC = () => {
 
         <div className="mt-20 glass-card p-8 md:p-10 grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
           <div>
-            <h3 className="text-2xl font-semibold mb-4">Why Choose My Services?</h3>
+            <h3 className="text-2xl font-semibold mb-4">Why Choose ReportCase.com?</h3>
             <ul className="space-y-4">
               <li className="flex gap-3">
                 <div className="text-cyber-blue/90 mt-1">
                   <Shield className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="font-medium text-lg">Certified Professional</p>
-                  <p className="text-cyber-light/70">Holding CISSP, CEH, and OSCP certifications with continuous education in emerging threats.</p>
+                  <p className="font-medium text-lg">Regulatory Expertise</p>
+                  <p className="text-cyber-light/70">Built by compliance experts with deep understanding of global regulatory requirements and frameworks.</p>
                 </div>
               </li>
               <li className="flex gap-3">
@@ -114,17 +113,17 @@ const About: React.FC = () => {
                   <Lock className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="font-medium text-lg">Tailored Solutions</p>
-                  <p className="text-cyber-light/70">Security strategies customized to your specific industry requirements and threat landscape.</p>
+                  <p className="font-medium text-lg">Security & Privacy by Design</p>
+                  <p className="text-cyber-light/70">End-to-end encryption and robust data protection measures ensure sensitive information remains secure.</p>
                 </div>
               </li>
               <li className="flex gap-3">
                 <div className="text-cyber-blue/90 mt-1">
-                  <Terminal className="w-5 h-5" />
+                  <Globe className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="font-medium text-lg">Comprehensive Approach</p>
-                  <p className="text-cyber-light/70">End-to-end security assessment covering technology, processes, and human factors.</p>
+                  <p className="font-medium text-lg">Global Reach, Local Expertise</p>
+                  <p className="text-cyber-light/70">Localized to support regional regulations while providing a unified global compliance view.</p>
                 </div>
               </li>
             </ul>
@@ -136,16 +135,16 @@ const About: React.FC = () => {
               <div className="w-2.5 h-2.5 rounded-full bg-green-500"></div>
             </div>
             <div className="font-mono text-sm sm:text-base overflow-hidden">
-              <div className="text-green-400">{">"} Security audit completed</div>
-              <div className="text-cyber-light/80">Analyzing results...</div>
-              <div className="mt-2 text-cyber-light/80">Found:</div>
-              <div className="text-red-400">- 3 Critical vulnerabilities</div>
-              <div className="text-yellow-400">- 7 Medium risks</div>
-              <div className="text-blue-400">- 12 Low severity issues</div>
-              <div className="mt-2 text-cyber-light/80">Recommendation:</div>
-              <div className="text-green-400">{">"} Immediate remediation plan activated</div>
+              <div className="text-green-400">{">"} Compliance scan initiated</div>
+              <div className="text-cyber-light/80">Analyzing regulatory frameworks...</div>
+              <div className="mt-2 text-cyber-light/80">Detected:</div>
+              <div className="text-blue-400">- EU Whistleblower Directive</div>
+              <div className="text-yellow-400">- GDPR requirements</div>
+              <div className="text-purple-400">- ESG reporting standards</div>
+              <div className="mt-2 text-cyber-light/80">Action:</div>
+              <div className="text-green-400">{">"} Configuring compliance controls</div>
               <div className="typing-container mt-2 w-full">
-                Securing your digital assets...
+                Ensuring complete regulatory coverage...
               </div>
             </div>
           </div>
