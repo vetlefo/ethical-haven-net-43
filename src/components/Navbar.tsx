@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Menu, X, FileText, ChevronRight } from 'lucide-react';
+import { Menu, X, FileText, ChevronRight, BarChart3, BookOpen, Presentation, Target, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const Navbar = () => {
@@ -39,11 +39,11 @@ const Navbar = () => {
   };
 
   const navLinks = [
-    { name: 'About', id: 'about' },
-    { name: 'Solutions', id: 'services' },
-    { name: 'Features', id: 'features' },
-    { name: 'Regional', id: 'regional' },
-    { name: 'Contact', id: 'contact' },
+    { name: 'Executive Summary', id: 'about', icon: BookOpen },
+    { name: 'Market Analysis', id: 'services', icon: BarChart3 },
+    { name: 'Key Findings', id: 'features', icon: Search },
+    { name: 'Regional Insights', id: 'regional', icon: Target },
+    { name: 'Action Plan', id: 'contact', icon: Presentation },
   ];
 
   return (
@@ -66,22 +66,23 @@ const Navbar = () => {
           </div>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex md:items-center md:space-x-8">
+          <div className="hidden md:flex md:items-center md:space-x-6">
             {navLinks.map((link) => (
               <button
                 key={link.id}
                 onClick={() => scrollToSection(link.id)}
-                className="text-cyber-light/80 hover:text-cyber-blue transition-colors relative group"
+                className="text-cyber-light/80 hover:text-cyber-blue transition-colors relative group flex items-center space-x-1.5"
               >
-                {link.name}
+                <link.icon className="h-4 w-4 text-cyber-blue" />
+                <span>{link.name}</span>
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-cyber-blue transition-all duration-300 group-hover:w-full"></span>
               </button>
             ))}
             <button 
-              className="cyber-button"
+              className="cyber-button flex items-center"
               onClick={() => scrollToSection('contact')}
             >
-              Request Demo
+              Request Proposal
               <ChevronRight className="ml-1 h-4 w-4 inline" />
             </button>
           </div>
@@ -109,16 +110,18 @@ const Navbar = () => {
             <button
               key={link.id}
               onClick={() => scrollToSection(link.id)}
-              className="text-2xl text-cyber-light hover:text-cyber-blue transition-colors"
+              className="text-xl text-cyber-light hover:text-cyber-blue transition-colors flex items-center space-x-3"
             >
-              {link.name}
+              <link.icon className="h-5 w-5 text-cyber-blue" />
+              <span>{link.name}</span>
             </button>
           ))}
           <button
-            className="cyber-button w-full mt-8 text-center"
+            className="cyber-button w-full mt-8 text-center flex items-center justify-center"
             onClick={() => scrollToSection('contact')}
           >
-            Request Demo
+            <span>Request Proposal</span>
+            <ChevronRight className="ml-2 h-4 w-4" />
           </button>
         </div>
       </div>
