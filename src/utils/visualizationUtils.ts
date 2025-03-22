@@ -48,15 +48,14 @@ function createPainPointsRadarChart(containerId: string, data: VisualizationData
     .range([0, radius]);
     
   // Draw background circles
-  const levels = 5;
   const circles = svg.selectAll(".level")
-    .data(d3.range(1, levels + 1).reverse())
+    .data(d3.range(1, 6))
     .enter()
     .append("circle")
     .attr("class", "level")
-    .attr("r", d => radius * d / levels)
+    .attr("r", d => radius * d / 5)
     .style("fill", "none")
-    .style("stroke", "rgba(255, 255, 255, 0.1)")
+    .style("stroke", "rgba(255, 255, 255, 0.2)")
     .style("stroke-width", 1);
   
   // Draw axis for each pain point
@@ -69,7 +68,7 @@ function createPainPointsRadarChart(containerId: string, data: VisualizationData
     .attr("y1", 0)
     .attr("x2", (d, i) => radius * Math.cos(angleScale(i) - Math.PI/2))
     .attr("y2", (d, i) => radius * Math.sin(angleScale(i) - Math.PI/2))
-    .style("stroke", "rgba(255, 255, 255, 0.3)")
+    .style("stroke", "rgba(255, 255, 255, 0.5)")
     .style("stroke-width", 1);
   
   // Draw the pain point labels
@@ -103,16 +102,38 @@ function createPainPointsRadarChart(containerId: string, data: VisualizationData
     .radius(d => radiusScale(d.value))
     .curve(d3.curveLinearClosed);
   
-  // Add radar path
-  svg.append("path")
+  // Add radar path with animation
+  const path = svg.append("path")
     .datum(data)
     .attr("class", "radar")
-    .attr("d", line)
-    .style("fill", `${colorPrimary}40`) // With transparency
-    .style("stroke", colorPrimary)
-    .style("stroke-width", 2);
+    .style("fill", "rgba(52, 152, 219, 0.5)") // More vibrant blue with transparency
+    .style("stroke", "#3498db")
+    .style("stroke-width", 2.5);
   
-  // Add points at each vertex
+  // Animate the path
+  const pathLength = path.node()?.getTotalLength() || 0;
+  path
+    .attr("stroke-dasharray", pathLength + " " + pathLength)
+    .attr("stroke-dashoffset", pathLength)
+    .attr("d", line)
+    .transition()
+    .duration(1500)
+    .ease(d3.easeLinear)
+    .attr("stroke-dashoffset", 0);
+
+  // Add percentage markers on each axis
+  svg.selectAll(".percent-marker")
+    .data(d3.range(0, 101, 20).slice(1))
+    .enter()
+    .append("text")
+    .attr("class", "percent-marker")
+    .attr("x", (d) => radiusScale(d) * Math.cos(0 - Math.PI/2) + 4)
+    .attr("y", (d) => radiusScale(d) * Math.sin(0 - Math.PI/2) - 4)
+    .text(d => d + "%")
+    .style("fill", "rgba(255, 255, 255, 0.7)")
+    .style("font-size", "9px");
+  
+  // Add points at each vertex with animation
   svg.selectAll(".dot")
     .data(data)
     .enter()
@@ -120,10 +141,33 @@ function createPainPointsRadarChart(containerId: string, data: VisualizationData
     .attr("class", "dot")
     .attr("cx", (d, i) => radiusScale(d.value) * Math.cos(angleScale(i) - Math.PI/2))
     .attr("cy", (d, i) => radiusScale(d.value) * Math.sin(angleScale(i) - Math.PI/2))
-    .attr("r", 5)
-    .style("fill", colorPrimary)
+    .attr("r", 0)
+    .style("fill", "#3498db")
     .style("stroke", "#FFFFFF")
-    .style("stroke-width", 2);
+    .style("stroke-width", 2)
+    .transition()
+    .delay((d, i) => 1000 + i * 200)
+    .duration(500)
+    .attr("r", 6);
+  
+  // Add value labels at each point
+  svg.selectAll(".value-label")
+    .data(data)
+    .enter()
+    .append("text")
+    .attr("class", "value-label")
+    .attr("x", (d, i) => (radiusScale(d.value) + 10) * Math.cos(angleScale(i) - Math.PI/2))
+    .attr("y", (d, i) => (radiusScale(d.value) + 10) * Math.sin(angleScale(i) - Math.PI/2))
+    .text(d => d.value + "%")
+    .style("fill", "#FFFFFF")
+    .style("font-size", "11px")
+    .style("font-weight", "bold")
+    .style("text-anchor", "middle")
+    .style("opacity", 0)
+    .transition()
+    .delay((d, i) => 1200 + i * 200)
+    .duration(500)
+    .style("opacity", 1);
   
   // Add interactive tooltips
   svg.selectAll(".dot")
