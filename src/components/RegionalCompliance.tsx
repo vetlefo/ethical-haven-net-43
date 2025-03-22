@@ -34,61 +34,95 @@ const RegionalCompliance: React.FC = () => {
     {
       id: 'europe',
       name: 'Europe',
-      description: 'Comprehensive compliance with EU regulations, including GDPR and the EU Whistleblower Directive.',
+      description: 'Europe is a high-growth, high-regulation market for compliance software, driven by the EU Whistleblower Directive, GDPR, NIS2, and the upcoming EU AI Act. Germany is a key market, with the LkSG adding further complexity.',
       regulations: [
-        { name: 'EU Whistleblower Directive', description: 'Full implementation support for organizations of all sizes' },
-        { name: 'GDPR Compliance', description: 'Complete data protection compliance with rights management' },
-        { name: 'Corporate Sustainability Reporting Directive', description: 'ESG reporting aligned with CSRD requirements' },
-        { name: 'NIS2 Directive', description: 'Cybersecurity risk management and reporting' },
+        { name: 'EU Whistleblower Directive', description: 'Mandatory internal reporting channels for organizations with 50+ employees' },
+        { name: 'General Data Protection Regulation (GDPR)', description: 'Comprehensive data protection and privacy framework' },
+        { name: 'NIS2 Directive', description: 'Strengthened cybersecurity requirements across sectors' },
+        { name: 'German Supply Chain Due Diligence Act (LkSG)', description: 'Human rights and environmental due diligence in supply chains' },
+        { name: 'EU AI Act (Upcoming)', description: 'Risk-based approach to AI regulation' }
       ],
-      upcomingChanges: [
-        { name: 'EU AI Act', date: 'Q3 2024', description: 'New requirements for AI systems and risk management' },
-        { name: 'Corporate Sustainability Due Diligence Directive', date: 'Q1 2025', description: 'Enhanced supply chain due diligence' },
+      marketData: [
+        { name: 'Market Size (Germany)', data: '$8.14B by 2030' },
+        { name: 'Growth Rate (Germany)', data: '12.4% CAGR (2025-2030)' },
+        { name: 'European GRC Market', data: 'Projected $27.08B by 2033' },
+        { name: 'Competitive Intensity', data: 'Medium' },
+        { name: 'Key Competitors', data: 'SAP GRC, NAVEX Global, MetricStream' }
       ]
     },
     {
-      id: 'north-america',
-      name: 'North America',
-      description: 'Tailored support for US and Canadian regulatory requirements, including SOX, Dodd-Frank, and CCPA/CPRA.',
+      id: 'united-kingdom',
+      name: 'United Kingdom',
+      description: 'Despite Brexit, the UK maintains a stringent regulatory environment, with a strong focus on ESG reporting and corporate governance.',
       regulations: [
-        { name: 'SOX Compliance', description: 'Financial reporting and audit controls for public companies' },
-        { name: 'Dodd-Frank Whistleblower Provisions', description: 'Support for SEC whistleblower requirements' },
-        { name: 'CCPA/CPRA', description: 'California privacy law compliance with consumer rights management' },
-        { name: 'State-level Privacy Laws', description: 'Coverage for various state privacy regulations (VCDPA, CPA, etc.)' },
+        { name: 'UK GDPR', description: 'UK version of the GDPR post-Brexit' },
+        { name: 'Public Interest Disclosure Act 1998', description: 'Whistleblower protection legislation' },
+        { name: 'Task Force on Climate-related Financial Disclosures (TCFD)', description: 'Climate risk disclosure requirements' },
+        { name: 'UK Sustainability Disclosure Standards (Upcoming)', description: 'Standardized ESG reporting framework' },
+        { name: 'Modern Slavery Act', description: 'Supply chain transparency requirements' }
       ],
-      upcomingChanges: [
-        { name: 'Federal Privacy Legislation', date: 'Pending', description: 'Monitoring developments in federal privacy law' },
-        { name: 'SEC Climate Disclosure Rules', date: 'Q4 2024', description: 'Enhanced climate risk disclosure requirements' },
+      marketData: [
+        { name: 'Market Size', data: '$10.91B by 2030' },
+        { name: 'Growth Rate', data: '11.6% CAGR (2025-2030)' },
+        { name: 'Competitive Intensity', data: 'High' },
+        { name: 'Key Competitors', data: 'Fidelity National Information Services, Genpact, IBM, Microsoft, Oracle' },
+        { name: 'Partnership Potential', data: 'High with EY' }
+      ]
+    },
+    {
+      id: 'united-states',
+      name: 'United States',
+      description: 'The US is the largest compliance software market, with a complex regulatory framework at both the federal and state levels.',
+      regulations: [
+        { name: 'California Consumer Privacy Act (CCPA)/California Privacy Rights Act (CPRA)', description: 'Comprehensive privacy legislation in California' },
+        { name: 'Sarbanes-Oxley Act (SOX)', description: 'Corporate governance and financial disclosure requirements' },
+        { name: 'Dodd-Frank Act', description: 'Financial regulation with whistleblower provisions' },
+        { name: 'State-level labor laws', description: 'Various state-specific employment regulations' },
+        { name: 'SEC climate disclosure rules (Emerging)', description: 'Enhanced climate risk disclosure requirements' }
+      ],
+      marketData: [
+        { name: 'Market Size', data: '$33.1B (2024)' },
+        { name: 'Growth Rate', data: '10.9% CAGR (2024-2031)' },
+        { name: 'Competitive Intensity', data: 'High' },
+        { name: 'Key Competitors', data: 'NAVEX, OneTrust, Workiva, IBM, Microsoft' },
+        { name: 'Partnership Potential', data: 'High with EY' }
       ]
     },
     {
       id: 'asia-pacific',
       name: 'Asia-Pacific',
-      description: 'Specialized support for APAC regulations across Singapore, Indonesia, Vietnam, Thailand, and the Philippines.',
+      description: 'The Asia-Pacific region exhibits high growth potential, particularly in the RegTech sector, driven by evolving data privacy laws and increasing ESG awareness.',
       regulations: [
-        { name: 'Singapore PDPA', description: 'Personal data protection compliance for Singaporean operations' },
-        { name: 'Indonesia OJK Sustainability Reports', description: 'ESG reporting for Indonesian financial institutions' },
-        { name: 'Vietnam Circular No. 155', description: 'Environmental disclosure requirements for Vietnamese entities' },
-        { name: 'Thailand SEC Corporate Governance Code', description: 'Corporate governance and ESG reporting in Thailand' },
+        { name: 'Singapore: Personal Data Protection Act (PDPA)', description: 'Comprehensive data protection framework' },
+        { name: 'Indonesia: Personal Data Protection Law (PDP Law)', description: 'New data privacy legislation' },
+        { name: 'Vietnam: Personal Data Protection Decree (PDPD)', description: 'Data protection requirements' },
+        { name: 'Philippines: Data Privacy Act of 2012', description: 'Data privacy and protection framework' },
+        { name: 'Thailand: Personal Data Protection Act (PDPA)', description: 'GDPR-inspired data protection law' }
       ],
-      upcomingChanges: [
-        { name: 'Singapore Mandatory Climate Reporting', date: 'Q2 2025', description: 'ISSB-aligned climate disclosures' },
-        { name: 'Philippines SEC GRI Requirements', date: 'Ongoing', description: 'Expanded sustainability reporting obligations' },
+      marketData: [
+        { name: 'Singapore RegTech CAGR', data: '16.7% (2024-2029)' },
+        { name: 'Indonesia RegTech CAGR', data: '24.6% (2024-2029)' },
+        { name: 'Vietnam RegTech CAGR', data: '22.0% (2024-2029)' },
+        { name: 'Philippines RegTech CAGR', data: '19.7% (2024-2029)' },
+        { name: 'Thailand RegTech CAGR', data: '16.4% (2024-2029)' }
       ]
     },
     {
       id: 'africa',
       name: 'Africa',
-      description: 'Customized solutions for African financial institutions and organizations with regional compliance needs.',
+      description: 'African financial institutions face increasing pressure to adopt ESG reporting, driven by international investors and emerging local regulations.',
       regulations: [
-        { name: 'South Africa JSE Sustainability Reporting Directive', description: 'ESG reporting for JSE-listed companies' },
-        { name: 'Nigeria Sustainable Banking Principles', description: 'Sustainability requirements for Nigerian banks' },
-        { name: 'Rwanda Climate Risk Management', description: 'Climate risk assessment and reporting requirements' },
-        { name: 'Kenya Central Bank Climate Framework', description: 'Financed emissions reporting for Kenyan institutions' },
+        { name: 'South Africa: Johannesburg Stock Exchange Sustainability Reporting Directive', description: 'ESG reporting for listed companies' },
+        { name: 'Kenya: Central Bank guidance on climate risk', description: 'Financed emissions reporting' },
+        { name: 'Nigeria: Sustainable Banking Principles', description: 'Sustainability requirements for banks' },
+        { name: 'Rwanda: Mandatory climate risk management guidelines', description: 'Climate risk assessment and reporting' }
       ],
-      upcomingChanges: [
-        { name: 'Pan-African ESG Standards', date: 'In development', description: 'Harmonized regional ESG reporting standards' },
-        { name: 'Kenya Mandatory Climate Reporting', date: 'January 2027', description: 'Mandatory reporting for financial sector' },
+      marketData: [
+        { name: 'MEA GRC Market Size', data: '$10.93B by 2030' },
+        { name: 'Growth Rate', data: '14.6% CAGR (2025-2030)' },
+        { name: 'Competitive Intensity', data: 'Medium' },
+        { name: 'Key Competitors', data: 'Varies by country; mix of global and regional players' },
+        { name: 'Partnership Opportunities', data: 'EY and potentially African Development Bank' }
       ]
     }
   ];
@@ -104,14 +138,14 @@ const RegionalCompliance: React.FC = () => {
       <div className="container mx-auto">
         <div className="text-center mb-16 space-y-3">
           <div className="inline-block px-4 py-1 rounded-full bg-cyber-blue/10 border border-cyber-blue/20 text-cyber-blue text-sm font-medium">
-            Global Coverage
+            Regional Insights
           </div>
           <h2 className="font-bold">
-            Regional <span className="gradient-text">Compliance</span> Expertise
+            Regional <span className="gradient-text">Market</span> Analysis
           </h2>
           <p className="text-cyber-light/70 max-w-2xl mx-auto text-lg">
-            Our platform provides tailored solutions for regional compliance requirements across the globe,
-            with specialized features for each jurisdiction.
+            Our research provides deep insights into regional compliance markets,
+            regulations, and growth opportunities across the globe.
           </p>
         </div>
 
@@ -143,7 +177,7 @@ const RegionalCompliance: React.FC = () => {
             <div>
               <h4 className="text-xl font-medium mb-4 flex items-center">
                 <MapPin className="h-5 w-5 mr-2 text-cyber-blue" />
-                Key Regulations Supported
+                Key Regulations
               </h4>
               
               <div className="space-y-4">
@@ -159,19 +193,18 @@ const RegionalCompliance: React.FC = () => {
             <div>
               <h4 className="text-xl font-medium mb-4 flex items-center">
                 <Calendar className="h-5 w-5 mr-2 text-cyber-blue" />
-                Upcoming Regulatory Changes
+                Market Data
               </h4>
               
               <div className="space-y-4">
-                {activeRegionData.upcomingChanges.map((change, index) => (
+                {activeRegionData.marketData.map((data, index) => (
                   <div key={index} className="p-4 bg-cyber-dark/30 rounded-lg border border-cyber-light/10">
-                    <div className="flex justify-between items-center mb-1">
-                      <h5 className="font-medium text-cyber-blue">{change.name}</h5>
-                      <span className="text-xs px-2 py-1 bg-cyber-blue/20 text-cyber-blue rounded-full">
-                        {change.date}
+                    <div className="flex justify-between items-center">
+                      <h5 className="font-medium text-cyber-blue">{data.name}</h5>
+                      <span className="text-sm px-2 py-1 bg-cyber-blue/20 text-cyber-blue rounded-full">
+                        {data.data}
                       </span>
                     </div>
-                    <p className="text-sm text-cyber-light/70">{change.description}</p>
                   </div>
                 ))}
               </div>
@@ -179,8 +212,8 @@ const RegionalCompliance: React.FC = () => {
               <div className="mt-6 p-4 bg-amber-950/20 border border-amber-600/30 rounded-lg flex items-start gap-3">
                 <AlertTriangle className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
                 <p className="text-sm text-cyber-light/80">
-                  Our compliance experts continuously monitor regulatory changes in {activeRegionData.name} to ensure 
-                  the platform remains up-to-date with the latest requirements.
+                  Our research shows significant growth opportunities in {activeRegionData.name}, 
+                  with evolving regulatory frameworks driving demand for comprehensive compliance solutions.
                 </p>
               </div>
             </div>

@@ -29,42 +29,78 @@ const Services: React.FC = () => {
     };
   }, []);
 
-  const services = [
+  const marketAnalysis = [
     {
       icon: Shield,
-      title: "Whistleblowing & Incident Reporting",
-      description: "Secure, anonymous reporting channels that comply with EU Whistleblower Directive, SOX, and Dodd-Frank requirements.",
-      features: ["Anonymous Reporting", "Multi-channel Submission", "Case Management", "Anti-retaliation Controls"]
+      title: "Germany Market Analysis",
+      description: "The German compliance software market is driven by stringent data privacy (GDPR), IT security (NIS2), and supply chain due diligence (LkSG) regulations.",
+      features: [
+        "Market Size: $8.14 billion (2030 projection)",
+        "CAGR: 12.4% (2025-2030)",
+        "Key Regulations: GDPR, NIS2, LkSG, IT Security Act 2.0",
+        "Competitive Intensity: Medium",
+        "Key Pain Point: Regulatory complexity"
+      ]
     },
     {
       icon: FileText,
-      title: "ESG Reporting",
-      description: "Comprehensive ESG data collection, analysis, and reporting across global and regional frameworks.",
-      features: ["Framework Mapping (GRI, TCFD)", "Supply Chain ESG Monitoring", "Automated Data Collection", "Stakeholder Reports"]
+      title: "United Kingdom Market Analysis",
+      description: "The UK maintains a strong focus on corporate governance and ESG reporting, with regulations like UK GDPR and upcoming sustainability disclosure standards.",
+      features: [
+        "Market Size: $10.91 billion (2030 projection)",
+        "CAGR: 11.6% (2025-2030)",
+        "Key Regulations: UK GDPR, TCFD, Modern Slavery Act",
+        "Competitive Intensity: High",
+        "Key Pain Point: Evolving ESG frameworks"
+      ]
     },
     {
       icon: Database,
-      title: "Regulatory Compliance",
-      description: "Stay on top of evolving regulations across multiple jurisdictions with automated updates and controls.",
-      features: ["GDPR Compliance Tools", "CCPA/CPRA Controls", "Regulatory Updates", "Compliance Dashboards"]
+      title: "United States Market Analysis",
+      description: "The US represents the largest single market for compliance software, driven by a complex landscape of federal and state regulations.",
+      features: [
+        "Market Size: $33.1 billion (2024)",
+        "CAGR: 10.9% (2024-2031)",
+        "Key Regulations: CCPA/CPRA, SOX, Dodd-Frank",
+        "Competitive Intensity: High",
+        "Key Pain Point: Managing multi-jurisdiction compliance"
+      ]
     },
     {
       icon: User,
-      title: "HR Compliance",
-      description: "Manage global workforce compliance with employment laws and regulations across jurisdictions.",
-      features: ["Global Labor Law Updates", "HR Policy Management", "Training Tracking", "Documentation Controls"]
+      title: "Singapore Market Analysis",
+      description: "Singapore is a high-growth RegTech market, underpinned by its status as a financial hub, with the PDPA and increasing ESG regulation.",
+      features: [
+        "RegTech Market Size: $386.48 Million (2029)",
+        "CAGR: 16.7% (2024-2029)",
+        "Key Regulations: PDPA, SGX Sustainability Reporting",
+        "Competitive Intensity: Medium",
+        "Key Pain Point: Fast-paced regulatory changes"
+      ]
     },
     {
       icon: Globe,
-      title: "Regional Compliance",
-      description: "Specialized modules for region-specific regulations and reporting requirements.",
-      features: ["EU Compliance", "US Regulations", "APAC Requirements", "African ESG Standards"]
+      title: "Indonesia Market Analysis",
+      description: "Indonesia represents a very high-growth, emerging RegTech market, with a large population, rapidly digitizing economy, and growing emphasis on data privacy.",
+      features: [
+        "RegTech Market Size: $620.53 Million (2029)",
+        "CAGR: 24.6% (2024-2029)",
+        "Key Regulations: Personal Data Protection Law (PDP)",
+        "Competitive Intensity: Low",
+        "Key Pain Point: Need for localized solutions"
+      ]
     },
     {
       icon: Lock,
-      title: "Data Protection & Privacy",
-      description: "Comprehensive tools for managing data protection compliance across global privacy regulations.",
-      features: ["Rights Management", "Consent Controls", "Data Mapping", "Breach Response"]
+      title: "African Market Analysis",
+      description: "The African financial sector is seeing increased ESG reporting demands driven by international investors and developing local regulations.",
+      features: [
+        "GRC Market Size (MEA): $10.93B (2030)",
+        "CAGR: 14.6% (2025-2030)",
+        "Key Regulations: Variable by country",
+        "Competitive Intensity: Medium",
+        "Key Pain Point: Lack of local ESG benchmarks"
+      ]
     }
   ];
 
@@ -77,44 +113,44 @@ const Services: React.FC = () => {
       <div className="container mx-auto">
         <div className="text-center mb-16 space-y-3">
           <div className="inline-block px-4 py-1 rounded-full bg-cyber-blue/10 border border-cyber-blue/20 text-cyber-blue text-sm font-medium">
-            Solutions
+            Market Analysis
           </div>
           <h2 className="font-bold">
-            Comprehensive <span className="gradient-text">Compliance</span> Solutions
+            Global <span className="gradient-text">Compliance</span> Market Insights
           </h2>
           <p className="text-cyber-light/70 max-w-2xl mx-auto text-lg">
-            ReportCase.com provides tailored solutions to address complex compliance 
-            requirements across industries and regions.
+            Our comprehensive research identifies key growth markets and regulatory drivers
+            across major regions worldwide.
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {services.map((service, index) => (
+          {marketAnalysis.map((market, index) => (
             <div 
               key={index}
               className="glass-card overflow-hidden transition-all duration-300 group hover:border-cyber-blue/40"
             >
               <div className="p-6 pb-8">
                 <div className="mb-4 p-3 rounded-full bg-cyber-blue/10 inline-block">
-                  <service.icon className="w-6 h-6 text-cyber-blue" />
+                  <market.icon className="w-6 h-6 text-cyber-blue" />
                 </div>
                 <h3 className="text-xl font-medium mb-3 group-hover:text-cyber-blue transition-colors">
-                  {service.title}
+                  {market.title}
                 </h3>
                 <p className="text-cyber-light/70 mb-6">
-                  {service.description}
+                  {market.description}
                 </p>
                 <ul className="space-y-2">
-                  {service.features.map((feature, fIndex) => (
-                    <li key={fIndex} className="flex items-center gap-2 text-sm text-cyber-light/80">
-                      <span className="w-1.5 h-1.5 rounded-full bg-cyber-blue"></span>
+                  {market.features.map((feature, fIndex) => (
+                    <li key={fIndex} className="flex items-start gap-2 text-sm text-cyber-light/80">
+                      <span className="w-1.5 h-1.5 rounded-full bg-cyber-blue mt-1.5"></span>
                       {feature}
                     </li>
                   ))}
                 </ul>
               </div>
               <div className="bg-gradient-to-r from-cyber-blue/20 to-cyber-blue/10 px-6 py-4 flex justify-between items-center">
-                <span className="text-cyber-light font-medium">Learn More</span>
+                <span className="text-cyber-light font-medium">View Full Analysis</span>
                 <span className="text-cyber-blue transform group-hover:translate-x-1 transition-transform">→</span>
               </div>
             </div>
@@ -123,13 +159,13 @@ const Services: React.FC = () => {
 
         <div className="mt-16 text-center">
           <p className="text-cyber-light/70 mb-6 max-w-2xl mx-auto">
-            Need a custom compliance solution for your specific requirements?
+            Need detailed insights on specific markets or regulatory frameworks?
           </p>
           <button 
             className="cyber-button"
             onClick={() => document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' })}
           >
-            Request Custom Solution
+            Request Custom Research
           </button>
         </div>
       </div>
