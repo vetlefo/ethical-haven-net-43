@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertTriangle, BarChart3, Layers, Zap, Database, Globe } from 'lucide-react';
@@ -13,6 +12,7 @@ const Features: React.FC = () => {
   const [showTerminal, setShowTerminal] = useState(false);
   const [showVisualization, setShowVisualization] = useState(false);
   const visualizationRef = useRef<HTMLDivElement>(null);
+  const visualizationContainerId = "tab-visualization";
 
   useEffect(() => {
     const section = sectionRef.current;
@@ -39,25 +39,39 @@ const Features: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    // Reset visualizations when tab changes
+    // Clean up previous visualizations when changing tabs
+    if (visualizationRef.current) {
+      visualizationRef.current.innerHTML = '';
+    }
+    
+    // Reset visualization state when tab changes
     setShowVisualization(false);
+    
+    // Show terminal first
     setShowTerminal(true);
     
+    // Then show visualization after terminal animation
     const timer = setTimeout(() => {
       setShowVisualization(true);
-    }, 2000); // Show visualization after terminal animation
+    }, 2000);
     
     return () => clearTimeout(timer);
   }, [activeTab]);
 
   useEffect(() => {
+    // Only create visualization when showVisualization is true and the container exists
     if (showVisualization && visualizationRef.current) {
       // Small delay to ensure the DOM is ready
-      setTimeout(() => {
-        if (activeTab === "pain-points") {
-          createVisualization('tab-visualization', 'radar', painPointsData);
+      const timer = setTimeout(() => {
+        const container = document.getElementById(visualizationContainerId);
+        if (container) {
+          if (activeTab === "pain-points") {
+            createVisualization(visualizationContainerId, 'radar', painPointsData);
+          }
         }
       }, 100);
+      
+      return () => clearTimeout(timer);
     }
   }, [showVisualization, activeTab]);
 
@@ -273,7 +287,7 @@ const Features: React.FC = () => {
                 </div>
                 <div className="rounded-lg overflow-hidden shadow-lg glass-card p-4 relative">
                   <div 
-                    id="tab-visualization" 
+                    id={visualizationContainerId} 
                     ref={visualizationRef}
                     className={cn(
                       "min-h-[300px] flex items-center justify-center transition-opacity duration-500",
@@ -288,7 +302,7 @@ const Features: React.FC = () => {
                   {showTerminal && (
                     <div 
                       className={cn(
-                        "absolute left-0 right-0 bottom-0 z-10 transform transition-transform duration-500 ease-out",
+                        "absolute inset-x-0 bottom-0 z-10 transform transition-transform duration-500 ease-out",
                         showVisualization ? "translate-y-[70%] hover:translate-y-[0%]" : "translate-y-0"
                       )}
                     >

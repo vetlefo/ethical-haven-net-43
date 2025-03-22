@@ -40,77 +40,108 @@ const Terminal: React.FC<TerminalProps> = ({
   const [initialTypingComplete, setInitialTypingComplete] = useState(false);
   const terminalRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  // Add mounted ref to track component lifecycle
+  const mountedRef = useRef(true);
 
   useEffect(() => {
+    // Set mounted on initialization
+    mountedRef.current = true;
+    
     const timer = setTimeout(() => {
-      setStarted(true);
+      if (mountedRef.current) {
+        setStarted(true);
+      }
     }, startDelay);
 
-    return () => clearTimeout(timer);
+    // Cleanup function
+    return () => {
+      mountedRef.current = false;
+      clearTimeout(timer);
+    };
   }, [startDelay]);
 
   useEffect(() => {
-    if (!started || currentLine >= lines.length) {
-      if (started && currentLine >= lines.length && !initialTypingComplete) {
+    if (!started || currentLine >= lines.length || !mountedRef.current) {
+      if (started && currentLine >= lines.length && !initialTypingComplete && mountedRef.current) {
         setInitialTypingComplete(true);
       }
       return;
     }
 
     const lineToType = lines[currentLine];
+    let timer: NodeJS.Timeout;
     
     if (displayedChars < lineToType.length) {
-      const timer = setTimeout(() => {
-        setDisplayedChars(displayedChars + 1);
+      timer = setTimeout(() => {
+        if (mountedRef.current) {
+          setDisplayedChars(displayedChars + 1);
+        }
       }, typingSpeed);
       
-      return () => clearTimeout(timer);
     } else {
       // Line complete
-      const newDisplayedLines = [...displayedLines];
-      newDisplayedLines[currentLine] = lineToType;
-      
-      const timer = setTimeout(() => {
-        setDisplayedLines(newDisplayedLines);
-        setCurrentLine(currentLine + 1);
-        setDisplayedChars(0);
+      timer = setTimeout(() => {
+        if (mountedRef.current) {
+          setDisplayedLines(prev => {
+            const newLines = [...prev];
+            newLines[currentLine] = lineToType;
+            return newLines;
+          });
+          setCurrentLine(prev => prev + 1);
+          setDisplayedChars(0);
+        }
       }, 500);
-      
-      return () => clearTimeout(timer);
     }
-  }, [displayedChars, displayedLines, currentLine, lines, started, typingSpeed, initialTypingComplete]);
+    
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [displayedChars, currentLine, lines, started, typingSpeed, initialTypingComplete]);
 
   // Blinking cursor
   useEffect(() => {
     const timer = setInterval(() => {
-      setCursor((prev) => !prev);
+      if (mountedRef.current) {
+        setCursor(prev => !prev);
+      }
     }, 500);
     
-    return () => clearInterval(timer);
+    return () => {
+      clearInterval(timer);
+    };
   }, []);
 
   // Auto-scroll to bottom
   useEffect(() => {
-    if (terminalRef.current) {
+    if (terminalRef.current && mountedRef.current) {
       terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
     }
   }, [displayedLines, userInput]);
 
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
   // Focus input when terminal is clicked
   const focusInput = () => {
-    if (interactive && initialTypingComplete && inputRef.current) {
+    if (interactive && initialTypingComplete && inputRef.current && mountedRef.current) {
       inputRef.current.focus();
     }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setUserInput(e.target.value);
+    if (mountedRef.current) {
+      setUserInput(e.target.value);
+    }
   };
 
   const handleInputSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (userInput.trim() && onCommand) {
+    if (userInput.trim() && onCommand && mountedRef.current) {
       // Add the command to displayed lines
       const commandLine = `$ ${userInput}`;
       setDisplayedLines(prev => [...prev, commandLine]);
@@ -150,7 +181,7 @@ const Terminal: React.FC<TerminalProps> = ({
       
       <div className={cn("text-cyber-light/90", interactive && "flex-1 overflow-y-auto mb-4")}>
         {displayedLines.map((line, index) => (
-          <div key={index} className="mb-1">
+          <div key={`line-${index}`} className="mb-1">
             {line.startsWith('$') ? (
               line
             ) : (
