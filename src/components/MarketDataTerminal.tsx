@@ -2,36 +2,63 @@
 import React, { useState, useEffect } from 'react';
 import Terminal from './Terminal';
 import { cn } from '@/lib/utils';
+import { findResearchCategory, getDefaultResponse, researchCategories } from '@/utils/researchData';
 
 interface MarketDataTerminalProps {
   className?: string;
+  interactive?: boolean;
 }
 
-const MarketDataTerminal: React.FC<MarketDataTerminalProps> = ({ className }) => {
-  const marketDataLines = [
-    "Market analysis initiated",
-    "Analyzing compliance software market...",
-    "Key Metrics:",
-    "",
-    "Germany: $8.14B market (2030) | 12.4% CAGR | High regulatory complexity",
-    "UK: $10.91B market (2030) | 11.6% CAGR | High regulatory complexity",
-    "US: $33.1B market (2024) | 10.9% CAGR | High regulatory complexity",
-    "",
-    "Southeast Asia Growth Leaders:",
-    "Indonesia: 24.6% RegTech CAGR | Vietnam: 22.0% RegTech CAGR",
-    "Philippines: 19.7% RegTech CAGR | Singapore: 16.7% RegTech CAGR",
-    "",
-    "Africa: GRC market projected at $10.93B by 2030 | 14.6% CAGR",
-    "",
-    "Analysis complete: Significant opportunity in both established and emerging markets"
+const MarketDataTerminal: React.FC<MarketDataTerminalProps> = ({ 
+  className,
+  interactive = true 
+}) => {
+  const initialLines = [
+    "Welcome to ComplianceResearch Terminal v1.0",
+    "Loading research database...",
+    "Loading complete.",
+    "Type 'help' to see available commands."
   ];
+
+  const [terminalLines, setTerminalLines] = useState<string[]>(initialLines);
+
+  const handleCommand = (command: string) => {
+    // Handle special command: clear
+    if (command.toLowerCase().trim() === 'clear') {
+      setTerminalLines([
+        "Terminal cleared.",
+        "Type 'help' to see available commands."
+      ]);
+      return;
+    }
+
+    // Look for matching research category
+    const category = findResearchCategory(command);
+    
+    if (category) {
+      const response = category.data;
+      
+      // Add the response with a small delay
+      setTimeout(() => {
+        setTerminalLines(prev => [...prev, ...response]);
+      }, 300);
+    } else {
+      // Default response for unrecognized commands
+      setTimeout(() => {
+        setTerminalLines(prev => [...prev, ...getDefaultResponse()]);
+      }, 300);
+    }
+  };
 
   return (
     <Terminal
-      lines={marketDataLines}
+      lines={terminalLines}
       typingSpeed={15}
       startDelay={500}
       className={cn(className)}
+      interactive={interactive}
+      onCommand={handleCommand}
+      promptText="research@reportcase:~"
     />
   );
 };

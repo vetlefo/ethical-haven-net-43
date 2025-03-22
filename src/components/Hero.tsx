@@ -33,7 +33,7 @@ const Hero: React.FC = () => {
         <div className="order-2 lg:order-1">
           <div className="space-y-6">
             <div className="inline-block px-4 py-1 rounded-full bg-cyber-blue/10 border border-cyber-blue/20 text-cyber-blue text-sm font-medium mb-2 animate-fade-in">
-              International Compliance Market Research
+              Interactive Compliance Research Terminal
             </div>
             
             <h1 className="font-bold leading-tight animate-slide-up" style={{ animationDelay: '0.2s' }}>
@@ -79,9 +79,15 @@ const Hero: React.FC = () => {
         </div>
         
         <div className="order-1 lg:order-2 animate-fade-in" style={{ animationDelay: '0.8s' }}>
-          <MarketDataTerminal
-            className="w-full max-w-xl mx-auto lg:ml-auto shadow-lg"
-          />
+          <div className="relative">
+            <MarketDataTerminal
+              className="w-full max-w-xl mx-auto lg:ml-auto shadow-lg"
+              interactive={true}
+            />
+            <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-xs text-cyber-light/60 bg-cyber-slate/80 px-3 py-1 rounded-full">
+              Try typing "market", "growth", "regulations", "competitors", "roi" or "help"
+            </div>
+          </div>
         </div>
       </div>
       
