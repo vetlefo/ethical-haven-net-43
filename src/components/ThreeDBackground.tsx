@@ -20,11 +20,13 @@ const ThreeDBackground: React.FC = () => {
           left: 0 
         }}
       >
+        <ambientLight intensity={0.4} />
+        <directionalLight position={[10, 10, 5]} intensity={0.7} />
         <Suspense fallback={null}>
           <OrbitControls 
             enableZoom={false} 
             enablePan={false} 
-            enableRotate={false} 
+            enableRotate={true}
             autoRotate={true}
             autoRotateSpeed={0.5}
           />

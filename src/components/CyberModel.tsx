@@ -1,7 +1,7 @@
 
 import React, { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Sphere, Torus, Html } from '@react-three/drei';
+import { Sphere, Torus } from '@react-three/drei';
 import * as THREE from 'three';
 
 const CyberShield = () => {
@@ -61,11 +61,6 @@ const CyberShield = () => {
           );
         })}
       </group>
-      
-      {/* Small floating labels */}
-      <Html position={[0, 2.2, 0]} center style={{ width: '200px', textAlign: 'center' }}>
-        <div className="text-cyber-blue text-sm font-mono opacity-70 pointer-events-none">SECURE</div>
-      </Html>
     </group>
   );
 };
@@ -73,8 +68,6 @@ const CyberShield = () => {
 const CyberModel = () => {
   return (
     <group position={[0, 0, 0]}>
-      <ambientLight intensity={0.4} />
-      <directionalLight position={[10, 10, 5]} intensity={0.7} />
       <CyberShield />
     </group>
   );
