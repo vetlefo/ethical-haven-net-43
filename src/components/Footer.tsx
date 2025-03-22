@@ -9,7 +9,7 @@ const Footer = () => {
     { icon: Github, href: "#", label: "GitHub" },
     { icon: Linkedin, href: "#", label: "LinkedIn" },
     { icon: Twitter, href: "#", label: "Twitter" },
-    { icon: Mail, href: "mailto:contact@cybersecure.com", label: "Email" }
+    { icon: Mail, href: "mailto:contact@reportcase.com", label: "Email" }
   ];
 
   const pageLinks = [
@@ -28,12 +28,12 @@ const Footer = () => {
             <div className="flex items-center space-x-2 mb-4">
               <Shield className="h-6 w-6 text-cyber-blue" />
               <span className="text-xl font-medium">
-                Cyber<span className="text-cyber-blue">Secure</span>
+                Report<span className="text-cyber-blue">Case</span>
               </span>
             </div>
             <p className="text-cyber-light/70 mb-6">
-              Professional ethical hacking and cybersecurity services to protect 
-              your digital assets from evolving threats.
+              Comprehensive market research on international compliance software 
+              opportunities across Europe, US, Asia, and Africa.
             </p>
             <div className="flex space-x-4">
               {socialLinks.map((link, index) => (
@@ -69,8 +69,8 @@ const Footer = () => {
           <div>
             <h3 className="text-lg font-medium mb-4">Newsletter</h3>
             <p className="text-cyber-light/70 mb-4">
-              Subscribe to receive security alerts and updates on the latest 
-              cybersecurity threats and defenses.
+              Subscribe to receive our research updates and insights on the latest 
+              international compliance market trends.
             </p>
             <form className="flex">
               <input 
@@ -89,7 +89,7 @@ const Footer = () => {
         </div>
         
         <div className="pt-8 border-t border-cyber-light/10 text-center text-cyber-light/60 text-sm">
-          <p>© {currentYear} CyberSecure. All rights reserved.</p>
+          <p>© {currentYear} ReportCase. All rights reserved.</p>
         </div>
       </div>
     </footer>
