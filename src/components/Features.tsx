@@ -1,11 +1,18 @@
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertTriangle, BarChart3, Layers, Zap, Database, Globe } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import Terminal from './Terminal';
+import { createVisualization } from '@/utils/visualizationUtils';
+import { painPointsData } from '@/utils/visualizationData';
 
 const Features: React.FC = () => {
   const sectionRef = useRef<HTMLElement>(null);
+  const [activeTab, setActiveTab] = useState("pain-points");
+  const [showTerminal, setShowTerminal] = useState(false);
+  const [showVisualization, setShowVisualization] = useState(false);
+  const visualizationRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const section = sectionRef.current;
@@ -16,6 +23,7 @@ const Features: React.FC = () => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             section.classList.add('revealed');
+            setShowTerminal(true);
             observer.unobserve(section);
           }
         });
@@ -29,6 +37,89 @@ const Features: React.FC = () => {
       if (section) observer.unobserve(section);
     };
   }, []);
+
+  useEffect(() => {
+    // Reset visualizations when tab changes
+    setShowVisualization(false);
+    setShowTerminal(true);
+    
+    const timer = setTimeout(() => {
+      setShowVisualization(true);
+    }, 2000); // Show visualization after terminal animation
+    
+    return () => clearTimeout(timer);
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (showVisualization && visualizationRef.current) {
+      // Small delay to ensure the DOM is ready
+      setTimeout(() => {
+        if (activeTab === "pain-points") {
+          createVisualization('tab-visualization', 'radar', painPointsData);
+        }
+      }, 100);
+    }
+  }, [showVisualization, activeTab]);
+
+  const getTerminalCommands = (tab: string) => {
+    switch(tab) {
+      case 'pain-points':
+        return [
+          "cd ~/research/market-analysis",
+          "ls -la",
+          "cat pain-points.json | jq",
+          "npm run visualization --type=radar --dataset=pain-points",
+          "# Generating visualization..."
+        ];
+      case 'entry-strategy':
+        return [
+          "cd ~/research/market-strategy",
+          "ls -la",
+          "grep -r 'Priority' ./entry-strategy.md",
+          "python3 analyze.py --region=EMEA --focus=entry",
+          "# Analyzing entry strategy data..."
+        ];
+      case 'growth-drivers':
+        return [
+          "cd ~/research/trends",
+          "git pull origin main",
+          "cat growth-factors.csv | sort -k2 -nr | head -10",
+          "node generate-chart.js --data=growth-drivers",
+          "# Processing growth data..."
+        ];
+      case 'competitive':
+        return [
+          "cd ~/research/competitors",
+          "find . -name '*.xlsx' | xargs -I{} xlsx2csv {}",
+          "curl -s api.market.io/v1/competitors | jq '.data[]'",
+          "./analyze-competitors.sh --region=global",
+          "# Mapping competitive landscape..."
+        ];
+      case 'partnership':
+        return [
+          "cd ~/research/partnerships",
+          "git checkout strategy-branch",
+          "grep -r 'EY' --include='*.md' .",
+          "python3 partnership-model.py --simulate --years=5",
+          "# Calculating partnership ROI..."
+        ];
+      case 'success-metrics':
+        return [
+          "cd ~/research/metrics",
+          "cat KPIs.yaml",
+          "./benchmark-calculator --industry=compliance --region=global",
+          "node metrics-dashboard.js --interactive",
+          "# Generating metrics dashboard..."
+        ];
+      default:
+        return [
+          "cd ~/research",
+          "ls -la",
+          "cat README.md",
+          "# Loading research data..."
+        ];
+    }
+  };
 
   const researchFindings = [
     {
@@ -142,7 +233,11 @@ const Features: React.FC = () => {
           </p>
         </div>
 
-        <Tabs defaultValue="pain-points" className="w-full">
+        <Tabs 
+          defaultValue="pain-points" 
+          className="w-full" 
+          onValueChange={(value) => setActiveTab(value)}
+        >
           <TabsList className="grid grid-cols-3 md:grid-cols-6 bg-cyber-dark/30 p-1 rounded-lg mb-8">
             {researchFindings.map((finding) => (
               <TabsTrigger 
@@ -176,12 +271,30 @@ const Features: React.FC = () => {
                     ))}
                   </ul>
                 </div>
-                <div className="rounded-lg overflow-hidden shadow-lg">
-                  <img 
-                    src={finding.image} 
-                    alt={finding.title} 
-                    className="w-full h-auto" 
-                  />
+                <div className="rounded-lg overflow-hidden shadow-lg glass-card p-4">
+                  {showTerminal && (
+                    <Terminal 
+                      lines={getTerminalCommands(activeTab)}
+                      typingSpeed={15}
+                      startDelay={100}
+                      className="mb-4 h-[150px]"
+                      interactive={false}
+                      promptText="researcher@reportcase:~$"
+                    />
+                  )}
+                  
+                  <div 
+                    id="tab-visualization" 
+                    ref={visualizationRef}
+                    className={cn(
+                      "min-h-[300px] flex items-center justify-center transition-opacity duration-500",
+                      showVisualization ? "opacity-100" : "opacity-0"
+                    )}
+                  >
+                    {!showVisualization && (
+                      <div className="text-cyber-blue animate-pulse">Loading visualization...</div>
+                    )}
+                  </div>
                 </div>
               </div>
             </TabsContent>
