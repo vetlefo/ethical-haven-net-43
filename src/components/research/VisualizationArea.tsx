@@ -1,63 +1,46 @@
 
 import React, { useRef, useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
-import Terminal from '../Terminal';
 import { VisualizationDataPoint } from '@/utils/visualizationData';
 
 interface VisualizationAreaProps {
   visualizationContainerId: string;
-  showTerminal: boolean;
   showVisualization: boolean;
   activeTab: string;
-  terminalCommands: string[];
 }
 
 const VisualizationArea: React.FC<VisualizationAreaProps> = ({
   visualizationContainerId,
-  showTerminal,
   showVisualization,
   activeTab,
-  terminalCommands,
 }) => {
   const visualizationRef = useRef<HTMLDivElement>(null);
 
   return (
-    <div className="rounded-lg overflow-hidden shadow-lg glass-card p-4 relative">
+    <div className="rounded-lg overflow-hidden shadow-lg glass-card p-4 relative h-full flex flex-col">
+      {!showVisualization && (
+        <div className="absolute inset-0 flex items-center justify-center z-10 bg-cyber-dark/80 backdrop-blur-sm">
+          <div className="flex flex-col items-center space-y-3">
+            <div className="h-5 w-5 border-2 border-cyber-blue border-t-transparent rounded-full animate-spin"></div>
+            <div className="text-cyber-blue text-sm font-mono">
+              <span className="inline-block">Loading visualization</span>
+              <span className="inline-block animate-pulse">...</span>
+            </div>
+            <div className="text-cyber-light/50 text-xs font-mono mt-2">
+              cd ./research/market-analysis
+            </div>
+          </div>
+        </div>
+      )}
+      
       <div 
         id={visualizationContainerId} 
         ref={visualizationRef}
         className={cn(
-          "min-h-[300px] flex items-center justify-center transition-opacity duration-500",
+          "min-h-[300px] flex items-center justify-center transition-opacity duration-500 flex-grow",
           showVisualization ? "opacity-100" : "opacity-0"
         )}
-      >
-        {!showVisualization && (
-          <div className="text-cyber-blue animate-pulse">Loading visualization...</div>
-        )}
-      </div>
-      
-      {showTerminal && (
-        <div 
-          className={cn(
-            "absolute inset-x-0 bottom-0 z-10 transform transition-transform duration-500 ease-out",
-            showVisualization ? "translate-y-[70%] hover:translate-y-[0%]" : "translate-y-0"
-          )}
-        >
-          <Terminal 
-            lines={terminalCommands}
-            typingSpeed={10}
-            startDelay={100}
-            className="mb-0 rounded-b-lg bg-cyber-dark/80 backdrop-blur-sm border-t border-cyber-blue/30"
-            interactive={false}
-            promptText="researcher@reportcase:~$"
-            colors={{
-              prompt: "#0ea5e9",
-              command: "#f8fafc",
-              comment: "#8B5CF6"
-            }}
-          />
-        </div>
-      )}
+      />
     </div>
   );
 };

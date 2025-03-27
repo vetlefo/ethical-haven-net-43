@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from '@/lib/utils';
 import { createVisualization } from '@/utils/visualizationUtils';
 import { painPointsData } from '@/utils/visualizationData';
-import { researchFindings, getTerminalCommands } from '@/utils/researchFindings';
+import { researchFindings } from '@/utils/researchFindings';
 import ResearchHeader from './research/ResearchHeader';
 import ResearchCard from './research/ResearchCard';
 import VisualizationArea from './research/VisualizationArea';
@@ -12,7 +12,6 @@ import VisualizationArea from './research/VisualizationArea';
 const Features: React.FC = () => {
   const sectionRef = useRef<HTMLElement>(null);
   const [activeTab, setActiveTab] = useState("pain-points");
-  const [showTerminal, setShowTerminal] = useState(false);
   const [showVisualization, setShowVisualization] = useState(false);
   const visualizationContainerId = "tab-visualization";
 
@@ -25,7 +24,6 @@ const Features: React.FC = () => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             section.classList.add('revealed');
-            setShowTerminal(true);
             observer.unobserve(section);
           }
         });
@@ -44,13 +42,10 @@ const Features: React.FC = () => {
     // Reset visualization state when tab changes
     setShowVisualization(false);
     
-    // Show terminal first
-    setShowTerminal(true);
-    
-    // Then show visualization after terminal animation
+    // Show visualization after a short delay to simulate loading
     const timer = setTimeout(() => {
       setShowVisualization(true);
-    }, 2000);
+    }, 1500);
     
     return () => clearTimeout(timer);
   }, [activeTab]);
@@ -101,14 +96,12 @@ const Features: React.FC = () => {
           
           {researchFindings.map((finding) => (
             <TabsContent key={finding.id} value={finding.id} className="mt-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-start h-full">
                 <ResearchCard finding={finding} />
                 <VisualizationArea 
                   visualizationContainerId={visualizationContainerId}
-                  showTerminal={showTerminal}
                   showVisualization={showVisualization}
                   activeTab={activeTab}
-                  terminalCommands={getTerminalCommands(activeTab)}
                 />
               </div>
             </TabsContent>
