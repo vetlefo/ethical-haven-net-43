@@ -1,8 +1,6 @@
+import { AlertTriangle, BarChart, Crosshair, FileText, Globe, LucideIcon, Users } from 'lucide-react';
 
-import { AlertTriangle, BarChart3, Layers, Zap, Database, Globe } from 'lucide-react';
-import { LucideIcon } from 'lucide-react';
-
-export interface ResearchFinding {
+interface ResearchDetail {
   id: string;
   icon: LucideIcon;
   title: string;
@@ -11,154 +9,89 @@ export interface ResearchFinding {
   image: string;
 }
 
-export const researchFindings: ResearchFinding[] = [
+export const researchFindings = [
   {
     id: "pain-points",
     icon: AlertTriangle,
     title: "Market Pain Points",
-    description: "Our research identified these critical challenges in the current compliance software landscape:",
+    description: "Our market research identified several critical pain points in the compliance software market that represent key opportunities for ReportCase.",
     details: [
-      "Regulatory Complexity: 87% of compliance officers struggle with the volume and complexity of regulations across jurisdictions.",
-      "Data Silos & Manual Processes: Compliance data often scattered across disparate systems and managed through inefficient manual processes.",
-      "User-Unfriendly Software: Existing compliance software often has complex interfaces and steep learning curves.",
-      "Inadequate Localization: Lack of market-specific customization makes global compliance difficult.",
-      "Limited Reporting & Analytics: Current solutions lack customizable reporting, trend analysis, and benchmarking capabilities."
+      "87% of compliance officers struggle with regulatory complexity",
+      "76% report data silos hampering effective compliance monitoring",
+      "68% find existing solutions have steep learning curves",
+      "72% struggle with lack of market-specific customization",
+      "81% need more customizable reporting capabilities"
     ],
-    image: "https://placehold.co/600x400/0ea5e9/FFFFFF/png?text=Pain+Points+Analysis"
+    image: "/images/pain-points.jpg"
   },
   {
-    id: "entry-strategy",
-    icon: Layers,
-    title: "Market Entry Strategy",
-    description: "Our recommended approach for entering the global compliance software market:",
-    details: [
-      "Priority 1: Germany - $8.14B market (2030), 12.4% CAGR, medium competition, high regulatory complexity",
-      "Priority 2: United Kingdom - $10.91B market (2030), 11.6% CAGR, high competition, strong regulatory environment",
-      "Priority 3: United States - $33.1B market (2024), 10.9% CAGR, high competition, complex regulatory framework",
-      "Phased rollout starting with Germany, then UK, then US",
-      "Leverage strategic partnerships for market entry and client acquisition",
-      "Focus on user-friendly design and seamless integration as key differentiators"
-    ],
-    image: "https://placehold.co/600x400/0ea5e9/FFFFFF/png?text=Market+Entry+Strategy"
-  },
-  {
-    id: "growth-drivers",
-    icon: BarChart3,
-    title: "Market Growth Drivers",
-    description: "Key factors driving the rapid growth in the compliance software market:",
-    details: [
-      "Increasing regulatory complexity and enforcement across jurisdictions",
-      "Growing focus on ESG reporting and transparency",
-      "Rising costs of non-compliance (fines, penalties, reputational damage)",
-      "Digital transformation accelerating demand for automated compliance solutions",
-      "Greater focus on whistleblower protection and corporate governance",
-      "Increasing cybersecurity threats and data protection requirements"
-    ],
-    image: "https://placehold.co/600x400/0ea5e9/FFFFFF/png?text=Growth+Drivers"
-  },
-  {
-    id: "competitive",
-    icon: Database,
-    title: "Competitive Landscape",
-    description: "Analysis of the current competitive environment in key markets:",
-    details: [
-      "Moderately fragmented market with opportunities for differentiation",
-      "Major players include NAVEX, Whistlelink, AuditBoard across various categories",
-      "European market dominated by regional players with strong data privacy focus",
-      "US market highly competitive with both established players and new entrants",
-      "ASEAN markets relatively underserved with fewer established players",
-      "Key differentiators: user experience, integration capabilities, and localization"
-    ],
-    image: "https://placehold.co/600x400/0ea5e9/FFFFFF/png?text=Competitive+Landscape"
-  },
-  {
-    id: "partnership",
+    id: "market-entry",
     icon: Globe,
-    title: "Partnership Strategy",
-    description: "Strategic partnership opportunities to accelerate market entry and growth:",
+    title: "Market Entry Strategy",
+    description: "Analysis of potential target markets for ReportCase's international expansion based on multiple strategic criteria.",
     details: [
-      "Leverage existing relationship with EY for market entry in primary targets",
-      "Collaborate to offer combined solution (technology + consulting services)",
-      "Explore potential integrations with existing EY compliance offerings",
-      "Utilize EY's global network for expansion into secondary markets",
-      "Consider partnerships with regional players in ASEAN markets",
-      "Explore collaborations with industry associations and regulatory bodies"
+      "Germany, UK, and US show strongest overall market potential",
+      "Emerging markets like Indonesia and Vietnam offer high growth rates",
+      "Partnership potential exists across all evaluated markets",
+      "Regulatory complexity varies significantly by region",
+      "Localization requirements present challenges in several target markets"
     ],
-    image: "https://placehold.co/600x400/0ea5e9/FFFFFF/png?text=Partnership+Strategy"
+    image: "/images/market-strategy.jpg"
   },
   {
-    id: "success-metrics",
-    icon: Zap,
-    title: "Key Success Metrics",
-    description: "Critical metrics to track for successful market entry and growth:",
+    id: "competitive-analysis",
+    icon: Crosshair,
+    title: "Competitive Analysis",
+    description: "Comprehensive analysis of the competitive landscape to identify strategic positioning opportunities.",
     details: [
-      "Market share in target markets",
-      "Customer acquisition cost and lifetime value",
-      "Customer satisfaction and Net Promoter Score (NPS)",
-      "Regulatory compliance rates for customers",
-      "Number and value of strategic partnerships",
-      "Product adoption and feature utilization rates"
+      "Big Four dominate enterprise market, but lack specialized solutions",
+      "Mid-market SaaS providers show strong innovation but limited global reach",
+      "Regulatory tech startups focusing on specific compliance domains",
+      "Many existing solutions lack AI/ML capabilities for predictive compliance",
+      "Opportunity exists for comprehensive cross-border compliance platform"
     ],
-    image: "https://placehold.co/600x400/0ea5e9/FFFFFF/png?text=Success+Metrics"
+    image: "/images/competitive-analysis.jpg"
+  },
+  {
+    id: "customer-segments",
+    icon: Users,
+    title: "Customer Segments",
+    description: "Target customer segments with highest potential value and alignment with ReportCase's solution.",
+    details: [
+      "Large enterprise (1000+ employees) compliance departments",
+      "Mid-market compliance teams with cross-border operations",
+      "Financial services industry represents 42% of total addressable market",
+      "Healthcare and pharmaceutical sectors experiencing fastest regulatory growth",
+      "Manufacturing and supply chain operations seeking streamlined compliance"
+    ],
+    image: "/images/customer-segments.jpg"
+  },
+  {
+    id: "regulatory-trends",
+    icon: FileText,
+    title: "Regulatory Trends",
+    description: "Analysis of regulatory landscape developments impacting compliance needs.",
+    details: [
+      "85% growth in new financial regulations since 2020",
+      "ESG reporting requirements expanding across jurisdictions",
+      "Data privacy frameworks evolving with increasing complexity",
+      "AI governance emerging as critical compliance focus area",
+      "Sanctions compliance becoming increasingly dynamic and complex"
+    ],
+    image: "/images/regulatory-trends.jpg"
+  },
+  {
+    id: "market-sizing",
+    icon: BarChart,
+    title: "Market Sizing",
+    description: "Quantification of total addressable market and serviceable segments.",
+    details: [
+      "Global GRC software market valued at $38.2B in 2023",
+      "Projected 14.2% CAGR through 2028",
+      "Financial services segment represents $16.8B opportunity",
+      "Enterprise segment growing at 17.3% annually",
+      "Cloud-based deployment model gaining market share rapidly"
+    ],
+    image: "/images/market-sizing.jpg"
   }
 ];
-
-export const getTerminalCommands = (tab: string): string[] => {
-  switch(tab) {
-    case 'pain-points':
-      return [
-        "cd ~/research/market-analysis",
-        "ls -la",
-        "cat pain-points.json | jq",
-        "npm run visualization --type=radar --dataset=pain-points",
-        "# Generating visualization..."
-      ];
-    case 'entry-strategy':
-      return [
-        "cd ~/research/market-strategy",
-        "ls -la",
-        "grep -r 'Priority' ./entry-strategy.md",
-        "python3 analyze.py --region=EMEA --focus=entry",
-        "# Analyzing entry strategy data..."
-      ];
-    case 'growth-drivers':
-      return [
-        "cd ~/research/trends",
-        "git pull origin main",
-        "cat growth-factors.csv | sort -k2 -nr | head -10",
-        "node generate-chart.js --data=growth-drivers",
-        "# Processing growth data..."
-      ];
-    case 'competitive':
-      return [
-        "cd ~/research/competitors",
-        "find . -name '*.xlsx' | xargs -I{} xlsx2csv {}",
-        "curl -s api.market.io/v1/competitors | jq '.data[]'",
-        "./analyze-competitors.sh --region=global",
-        "# Mapping competitive landscape..."
-      ];
-    case 'partnership':
-      return [
-        "cd ~/research/partnerships",
-        "git checkout strategy-branch",
-        "grep -r 'EY' --include='*.md' .",
-        "python3 partnership-model.py --simulate --years=5",
-        "# Calculating partnership ROI..."
-      ];
-    case 'success-metrics':
-      return [
-        "cd ~/research/metrics",
-        "cat KPIs.yaml",
-        "./benchmark-calculator --industry=compliance --region=global",
-        "node metrics-dashboard.js --interactive",
-        "# Generating metrics dashboard..."
-      ];
-    default:
-      return [
-        "cd ~/research",
-        "ls -la",
-        "cat README.md",
-        "# Loading research data..."
-      ];
-  }
-};

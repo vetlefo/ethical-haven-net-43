@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from '@/lib/utils';
 import { createVisualization } from '@/utils/visualizationUtils';
-import { painPointsData } from '@/utils/visualizationData';
+import { painPointsData, marketEntryData } from '@/utils/visualizationData';
 import { researchFindings } from '@/utils/researchFindings';
 import ResearchHeader from './research/ResearchHeader';
 import ResearchCard from './research/ResearchCard';
@@ -59,6 +59,8 @@ const Features: React.FC = () => {
         if (container) {
           if (activeTab === "pain-points") {
             createVisualization(visualizationContainerId, 'radar', painPointsData);
+          } else if (activeTab === "market-entry") {
+            createVisualization(visualizationContainerId, 'heatmap', marketEntryData);
           }
         }
       }, 100);

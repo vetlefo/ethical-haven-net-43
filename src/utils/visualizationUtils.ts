@@ -1,11 +1,11 @@
 
 import * as d3 from 'd3';
-import { VisualizationData, VisualizationDataPoint } from './visualizationData';
+import { VisualizationDataPoint, MarketEntryDataPoint } from './visualizationData';
 
 export const createVisualization = (
   containerId: string, 
   visualizationType: string, 
-  data: VisualizationDataPoint[]
+  data: VisualizationDataPoint[] | MarketEntryDataPoint[]
 ) => {
   const container = document.getElementById(containerId);
   if (!container) return;
@@ -14,7 +14,9 @@ export const createVisualization = (
   container.innerHTML = '';
   
   if (visualizationType === 'radar') {
-    createPainPointsRadarChart(containerId, data);
+    createPainPointsRadarChart(containerId, data as VisualizationDataPoint[]);
+  } else if (visualizationType === 'heatmap') {
+    createMarketEntryHeatmap(containerId, data as MarketEntryDataPoint[]);
   }
 };
 
@@ -173,4 +175,271 @@ function createPainPointsRadarChart(containerId: string, data: VisualizationData
   svg.selectAll(".dot")
     .append("title")
     .text(d => `${d.name}: ${d.value}%\n${d.description}`);
+}
+
+function createMarketEntryHeatmap(containerId: string, data: MarketEntryDataPoint[]) {
+  // Define the container and dimensions
+  const container = document.getElementById(containerId);
+  const containerWidth = container?.clientWidth || 800;
+  const containerHeight = container?.clientHeight || 500;
+  
+  // Define ratings order for color scale domain
+  const ratings = ["Low", "Medium", "High", "Very High"];
+  
+  // Define cyber-themed colors (from blue to neon)
+  const colors = ["#1A1F2C", "#1EAEDB", "#3498db", "#8B5CF6"];
+
+  // Setup SVG dimensions and margins
+  const margin = { top: 60, right: 120, bottom: 150, left: 120 };
+  const width = containerWidth - margin.left - margin.right;
+  const height = containerHeight - margin.top - margin.bottom;
+
+  // Create SVG
+  const svg = d3.select(`#${containerId}`)
+    .append("svg")
+    .attr("width", containerWidth)
+    .attr("height", containerHeight)
+    .attr("viewBox", `0 0 ${containerWidth} ${containerHeight}`)
+    .attr("style", "width: 100%; height: auto;")
+    .append("g")
+    .attr("transform", `translate(${margin.left},${margin.top})`);
+
+  // Extract unique markets and criteria
+  const markets = Array.from(new Set(data.map(d => d.market)));
+  const criteria = Array.from(new Set(data.map(d => d.criterion)));
+
+  // X Scale (Criteria)
+  const xScale = d3.scaleBand()
+    .domain(criteria)
+    .range([0, width])
+    .padding(0.05);
+
+  // Y Scale (Markets)
+  const yScale = d3.scaleBand()
+    .domain(markets)
+    .range([0, height])
+    .padding(0.05);
+
+  // Color Scale
+  const colorScale = d3.scaleOrdinal<string>()
+    .domain(ratings)
+    .range(colors);
+
+  // Create tooltip
+  const tooltip = d3.select(`#${containerId}`)
+    .append("div")
+    .attr("class", "tooltip")
+    .style("opacity", 0)
+    .style("position", "absolute")
+    .style("background-color", "rgba(12, 20, 39, 0.9)")
+    .style("border", "1px solid #3498db")
+    .style("border-radius", "4px")
+    .style("padding", "8px")
+    .style("color", "#ffffff")
+    .style("font-size", "12px")
+    .style("pointer-events", "none")
+    .style("font-family", "monospace")
+    .style("box-shadow", "0 4px 6px rgba(0, 0, 0, 0.3)")
+    .style("z-index", "10");
+
+  // X Axis (Criteria)
+  svg.append("g")
+    .attr("transform", `translate(0,${height})`)
+    .call(d3.axisBottom(xScale))
+    .selectAll("text")
+    .attr("transform", "translate(-10,5)rotate(-45)")
+    .style("text-anchor", "end")
+    .style("font-size", "10px")
+    .style("fill", "#e0e0e0")
+    .style("font-family", "monospace");
+  
+  // Remove x-axis path and ticks
+  svg.selectAll(".domain, .tick line").style("stroke", "rgba(52, 152, 219, 0.3)");
+
+  // Y Axis (Markets)
+  svg.append("g")
+    .call(d3.axisLeft(yScale))
+    .selectAll("text")
+    .style("font-size", "11px")
+    .style("fill", "#e0e0e0")
+    .style("font-family", "monospace");
+
+  // Draw heatmap cells with animation
+  svg.selectAll(".cell")
+    .data(data)
+    .enter()
+    .append("rect")
+    .attr("class", "cell")
+    .attr("x", d => xScale(d.criterion) || 0)
+    .attr("y", d => yScale(d.market) || 0)
+    .attr("width", xScale.bandwidth())
+    .attr("height", yScale.bandwidth())
+    .attr("fill", "rgba(0, 0, 0, 0)") // Start transparent
+    .attr("stroke", "#0c1427")
+    .attr("stroke-width", 1)
+    .attr("rx", 2) // Rounded corners
+    .attr("ry", 2)
+    .on("mouseover", function(event, d) {
+      d3.select(this)
+        .transition()
+        .duration(200)
+        .attr("stroke", "#3498db")
+        .attr("stroke-width", 2);
+      
+      tooltip.transition()
+        .duration(200)
+        .style("opacity", 1);
+      
+      tooltip.html(`
+        <div style="border-bottom: 1px solid #3498db; padding-bottom: 4px; margin-bottom: 6px;">
+          <span style="color: #3498db;">Market: </span>${d.market}
+        </div>
+        <div>
+          <span style="color: #3498db;">Criterion: </span>${d.criterion}
+        </div>
+        <div>
+          <span style="color: #3498db;">Rating: </span>${d.rating}
+        </div>
+      `)
+      .style("left", (event.pageX + 15) + "px")
+      .style("top", (event.pageY - 28) + "px");
+    })
+    .on("mousemove", function(event) {
+      tooltip
+        .style("left", (event.pageX + 15) + "px")
+        .style("top", (event.pageY - 28) + "px");
+    })
+    .on("mouseout", function() {
+      d3.select(this)
+        .transition()
+        .duration(200)
+        .attr("stroke", "#0c1427")
+        .attr("stroke-width", 1);
+      
+      tooltip.transition()
+        .duration(500)
+        .style("opacity", 0);
+    })
+    .transition()
+    .duration(1000)
+    .delay((d, i) => i * 10)
+    .attr("fill", d => colorScale(d.rating) as string);
+
+  // Add title
+  svg.append("text")
+    .attr("x", width / 2)
+    .attr("y", -30)
+    .attr("text-anchor", "middle")
+    .style("font-size", "16px")
+    .style("fill", "#3498db")
+    .style("font-family", "monospace")
+    .style("font-weight", "bold")
+    .text("Market Entry Strategy Analysis");
+
+  // Add legend
+  const legendWidth = 15;
+  const legendHeight = 15;
+  const legendSpacing = 5;
+
+  const legend = svg.append("g")
+    .attr("class", "legend")
+    .attr("transform", `translate(${width + 20}, 0)`);
+
+  // Legend title
+  legend.append("text")
+    .attr("x", 0)
+    .attr("y", -10)
+    .style("font-size", "12px")
+    .style("fill", "#e0e0e0")
+    .style("font-family", "monospace")
+    .text("Rating");
+
+  // Legend items
+  ratings.forEach((rating, i) => {
+    const legendItem = legend.append("g")
+      .attr("transform", `translate(0, ${i * (legendHeight + legendSpacing) + 10})`);
+    
+    legendItem.append("rect")
+      .attr("width", legendWidth)
+      .attr("height", legendHeight)
+      .attr("rx", 2)
+      .attr("ry", 2)
+      .style("fill", colorScale(rating) as string)
+      .style("stroke", "#3498db")
+      .style("stroke-width", 0.5);
+    
+    legendItem.append("text")
+      .attr("x", legendWidth + legendSpacing + 5)
+      .attr("y", legendHeight / 2)
+      .attr("dy", "0.35em")
+      .style("font-size", "11px")
+      .style("fill", "#e0e0e0")
+      .style("font-family", "monospace")
+      .text(rating);
+  });
+
+  // Add grid effect (cyber theme)
+  svg.append("g")
+    .attr("class", "grid-lines")
+    .selectAll("line.horizontal")
+    .data(markets)
+    .enter()
+    .append("line")
+    .attr("class", "horizontal")
+    .attr("x1", 0)
+    .attr("y1", d => (yScale(d) || 0) + yScale.bandwidth())
+    .attr("x2", width)
+    .attr("y2", d => (yScale(d) || 0) + yScale.bandwidth())
+    .style("stroke", "rgba(52, 152, 219, 0.15)")
+    .style("stroke-width", 1);
+
+  svg.append("g")
+    .attr("class", "grid-lines")
+    .selectAll("line.vertical")
+    .data(criteria)
+    .enter()
+    .append("line")
+    .attr("class", "vertical")
+    .attr("x1", d => (xScale(d) || 0) + xScale.bandwidth())
+    .attr("y1", 0)
+    .attr("x2", d => (xScale(d) || 0) + xScale.bandwidth())
+    .attr("y2", height)
+    .style("stroke", "rgba(52, 152, 219, 0.15)")
+    .style("stroke-width", 1);
+
+  // Add cyber effect glows
+  const defs = svg.append("defs");
+  
+  // Create glow filter
+  const filter = defs.append("filter")
+    .attr("id", "glow")
+    .attr("x", "-50%")
+    .attr("y", "-50%")
+    .attr("width", "200%")
+    .attr("height", "200%");
+  
+  filter.append("feGaussianBlur")
+    .attr("stdDeviation", "3")
+    .attr("result", "coloredBlur");
+  
+  const feMerge = filter.append("feMerge");
+  feMerge.append("feMergeNode")
+    .attr("in", "coloredBlur");
+  feMerge.append("feMergeNode")
+    .attr("in", "SourceGraphic");
+
+  // Add subtle animations for cyber effect
+  function pulseAnimation() {
+    svg.selectAll(".cell")
+      .transition()
+      .duration(2000)
+      .style("filter", "url(#glow)")
+      .transition()
+      .duration(2000)
+      .style("filter", "none")
+      .on("end", pulseAnimation);
+  }
+  
+  // Start the pulse animation
+  setTimeout(pulseAnimation, 2000);
 }
