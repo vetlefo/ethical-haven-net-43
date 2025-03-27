@@ -1,7 +1,6 @@
 
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef } from 'react';
 import { cn } from '@/lib/utils';
-import { VisualizationDataPoint } from '@/utils/visualizationData';
 
 interface VisualizationAreaProps {
   visualizationContainerId: string;
@@ -17,7 +16,7 @@ const VisualizationArea: React.FC<VisualizationAreaProps> = ({
   const visualizationRef = useRef<HTMLDivElement>(null);
 
   return (
-    <div className="rounded-lg overflow-hidden shadow-lg glass-card p-4 relative h-full flex flex-col">
+    <div className="rounded-lg h-full flex flex-col bg-cyber-dark border border-cyber-blue/20 shadow-lg overflow-hidden">
       {!showVisualization && (
         <div className="absolute inset-0 flex items-center justify-center z-10 bg-cyber-dark/80 backdrop-blur-sm">
           <div className="flex flex-col items-center space-y-3">
@@ -37,7 +36,7 @@ const VisualizationArea: React.FC<VisualizationAreaProps> = ({
         id={visualizationContainerId} 
         ref={visualizationRef}
         className={cn(
-          "min-h-[300px] flex items-center justify-center transition-opacity duration-500 flex-grow",
+          "min-h-[300px] p-4 flex items-center justify-center transition-opacity duration-500 flex-grow",
           showVisualization ? "opacity-100" : "opacity-0"
         )}
       />

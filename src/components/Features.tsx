@@ -96,7 +96,7 @@ const Features: React.FC = () => {
           
           {researchFindings.map((finding) => (
             <TabsContent key={finding.id} value={finding.id} className="mt-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-start h-full">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-stretch h-full">
                 <ResearchCard finding={finding} />
                 <VisualizationArea 
                   visualizationContainerId={visualizationContainerId}
