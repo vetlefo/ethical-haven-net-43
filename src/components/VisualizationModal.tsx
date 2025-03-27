@@ -34,7 +34,7 @@ const VisualizationModal = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-[800px] w-[90vw] max-h-[90vh] overflow-y-auto bg-black/90 border-cyber-blue/30">
+      <DialogContent className="max-w-[800px] w-[90vw] max-h-[90vh] overflow-visible bg-black/90 border-cyber-blue/30">
         <DialogHeader className="flex flex-row items-center justify-between">
           <div>
             <DialogTitle className="text-cyber-light text-xl">{title}</DialogTitle>
@@ -54,7 +54,7 @@ const VisualizationModal = ({
         <div 
           id="visualization-container" 
           ref={visualizationRef}
-          className="flex justify-center items-center min-h-[500px] w-full p-4"
+          className="flex justify-center items-center min-h-[500px] w-full p-4 relative"
         />
         <div className="text-xs text-cyber-light/50 text-center mt-4">
           Source: Global Compliance Officer Survey 2024 (n=612)

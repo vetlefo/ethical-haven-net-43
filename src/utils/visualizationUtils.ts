@@ -1,4 +1,3 @@
-
 import * as d3 from 'd3';
 import { VisualizationDataPoint, MarketEntryDataPoint } from './visualizationData';
 
@@ -186,8 +185,8 @@ function createMarketEntryHeatmap(containerId: string, data: MarketEntryDataPoin
   // Define ratings order for color scale domain
   const ratings = ["Low", "Medium", "High", "Very High"];
   
-  // Define cyber-themed colors (from blue to neon)
-  const colors = ["#1A1F2C", "#1EAEDB", "#3498db", "#8B5CF6"];
+  // Define cyber-themed colors with higher contrast
+  const colors = ["#1A1F2C", "#3498db", "#8B5CF6", "#F97316"]; // Dark blue, blue, purple, orange
 
   // Setup SVG dimensions and margins
   const margin = { top: 60, right: 120, bottom: 150, left: 120 };
@@ -231,16 +230,16 @@ function createMarketEntryHeatmap(containerId: string, data: MarketEntryDataPoin
     .attr("class", "tooltip")
     .style("opacity", 0)
     .style("position", "absolute")
-    .style("background-color", "rgba(12, 20, 39, 0.9)")
-    .style("border", "1px solid #3498db")
+    .style("background-color", "rgba(12, 20, 39, 0.95)")
+    .style("border", "2px solid #3498db")
     .style("border-radius", "4px")
-    .style("padding", "8px")
+    .style("padding", "10px")
     .style("color", "#ffffff")
     .style("font-size", "12px")
     .style("pointer-events", "none")
     .style("font-family", "monospace")
-    .style("box-shadow", "0 4px 6px rgba(0, 0, 0, 0.3)")
-    .style("z-index", "10");
+    .style("box-shadow", "0 4px 10px rgba(0, 0, 0, 0.5)")
+    .style("z-index", "100");
 
   // X Axis (Criteria)
   svg.append("g")
@@ -283,22 +282,22 @@ function createMarketEntryHeatmap(containerId: string, data: MarketEntryDataPoin
       d3.select(this)
         .transition()
         .duration(200)
-        .attr("stroke", "#3498db")
-        .attr("stroke-width", 2);
+        .attr("stroke", "#F97316") // Orange stroke on hover
+        .attr("stroke-width", 3);
       
       tooltip.transition()
         .duration(200)
         .style("opacity", 1);
       
       tooltip.html(`
-        <div style="border-bottom: 1px solid #3498db; padding-bottom: 4px; margin-bottom: 6px;">
-          <span style="color: #3498db;">Market: </span>${d.market}
+        <div style="border-bottom: 2px solid #3498db; padding-bottom: 4px; margin-bottom: 6px;">
+          <span style="color: #3498db; font-weight: bold;">Market: </span>${d.market}
         </div>
         <div>
-          <span style="color: #3498db;">Criterion: </span>${d.criterion}
+          <span style="color: #3498db; font-weight: bold;">Criterion: </span>${d.criterion}
         </div>
         <div>
-          <span style="color: #3498db;">Rating: </span>${d.rating}
+          <span style="color: #3498db; font-weight: bold;">Rating: </span><span style="color: ${colorScale(d.rating)}; font-weight: bold;">${d.rating}</span>
         </div>
       `)
       .style("left", (event.pageX + 15) + "px")
@@ -336,7 +335,7 @@ function createMarketEntryHeatmap(containerId: string, data: MarketEntryDataPoin
     .style("font-weight", "bold")
     .text("Market Entry Strategy Analysis");
 
-  // Add legend
+  // Add legend with improved contrast
   const legendWidth = 15;
   const legendHeight = 15;
   const legendSpacing = 5;
@@ -354,10 +353,10 @@ function createMarketEntryHeatmap(containerId: string, data: MarketEntryDataPoin
     .style("font-family", "monospace")
     .text("Rating");
 
-  // Legend items
+  // Legend items with more prominent indicators
   ratings.forEach((rating, i) => {
     const legendItem = legend.append("g")
-      .attr("transform", `translate(0, ${i * (legendHeight + legendSpacing) + 10})`);
+      .attr("transform", `translate(0, ${i * (legendHeight + 10) + 10})`);
     
     legendItem.append("rect")
       .attr("width", legendWidth)
@@ -366,7 +365,7 @@ function createMarketEntryHeatmap(containerId: string, data: MarketEntryDataPoin
       .attr("ry", 2)
       .style("fill", colorScale(rating) as string)
       .style("stroke", "#3498db")
-      .style("stroke-width", 0.5);
+      .style("stroke-width", 1);
     
     legendItem.append("text")
       .attr("x", legendWidth + legendSpacing + 5)
@@ -410,7 +409,7 @@ function createMarketEntryHeatmap(containerId: string, data: MarketEntryDataPoin
   // Add cyber effect glows
   const defs = svg.append("defs");
   
-  // Create glow filter
+  // Create glow filter with stronger effect
   const filter = defs.append("filter")
     .attr("id", "glow")
     .attr("x", "-50%")
@@ -419,7 +418,7 @@ function createMarketEntryHeatmap(containerId: string, data: MarketEntryDataPoin
     .attr("height", "200%");
   
   filter.append("feGaussianBlur")
-    .attr("stdDeviation", "3")
+    .attr("stdDeviation", "4")
     .attr("result", "coloredBlur");
   
   const feMerge = filter.append("feMerge");
