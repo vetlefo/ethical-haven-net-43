@@ -81,7 +81,7 @@ const Features: React.FC = () => {
           className="w-full" 
           onValueChange={(value) => setActiveTab(value)}
         >
-          <TabsList className="grid grid-cols-3 md:grid-cols-6 bg-cyber-dark/30 p-1 rounded-lg mb-8">
+          <TabsList className="grid grid-cols-3 md:grid-cols-6 bg-cyber-slate border border-cyber-blue/20 p-1 rounded-lg mb-8">
             {researchFindings.map((finding) => (
               <TabsTrigger 
                 key={finding.id} 

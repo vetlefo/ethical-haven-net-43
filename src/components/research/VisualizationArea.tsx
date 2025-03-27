@@ -16,9 +16,9 @@ const VisualizationArea: React.FC<VisualizationAreaProps> = ({
   const visualizationRef = useRef<HTMLDivElement>(null);
 
   return (
-    <div className="rounded-lg h-full flex flex-col bg-cyber-dark border border-cyber-blue/20 shadow-lg overflow-hidden">
+    <div className="rounded-lg h-full flex flex-col bg-cyber-slate border border-cyber-blue/20 shadow-lg overflow-hidden">
       {!showVisualization && (
-        <div className="absolute inset-0 flex items-center justify-center z-10 bg-cyber-dark/80 backdrop-blur-sm">
+        <div className="absolute inset-0 flex items-center justify-center z-10 bg-cyber-slate/90 backdrop-blur-sm">
           <div className="flex flex-col items-center space-y-3">
             <div className="h-5 w-5 border-2 border-cyber-blue border-t-transparent rounded-full animate-spin"></div>
             <div className="text-cyber-blue text-sm font-mono">
