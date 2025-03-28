@@ -25,6 +25,9 @@ const Admin: React.FC = () => {
     "Vector embedding module initialized.",
     "Ready to process compliance reports."
   ]);
+  
+  // Store the Gemini API key at the top level so it can be shared with child components
+  const [geminiApiKey, setGeminiApiKey] = useState('YOUR_GEMINI_API_KEY');
 
   const executeCommand = async (command: string) => {
     setTerminalLines(prev => [...prev, `$ ${command}`, `Processing command: ${command}...`]);
@@ -33,7 +36,7 @@ const Admin: React.FC = () => {
     try {
       const { data, error } = await supabase.functions.invoke('generate-report', {
         body: {
-          geminiApiKey: "YOUR_KEY_HERE", // This should be replaced with a proper key input field
+          geminiApiKey,
           prompt: command
         }
       });
@@ -70,7 +73,7 @@ const Admin: React.FC = () => {
                 </TabsList>
                 
                 <TabsContent value="unified">
-                  <UnifiedArticleProcessor />
+                  <UnifiedArticleProcessor geminiApiKey={geminiApiKey} setGeminiApiKey={setGeminiApiKey} />
                 </TabsContent>
                 
                 <TabsContent value="manual">

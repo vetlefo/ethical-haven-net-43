@@ -11,12 +11,18 @@ import { toast } from '@/hooks/use-toast';
 import { useUnifiedWorkflow } from './hooks/useUnifiedWorkflow';
 import { Steps, Step } from './Steps';
 
-const UnifiedArticleProcessor: React.FC = () => {
+interface UnifiedArticleProcessorProps {
+  geminiApiKey: string;
+  setGeminiApiKey: (key: string) => void;
+}
+
+const UnifiedArticleProcessor: React.FC<UnifiedArticleProcessorProps> = ({ 
+  geminiApiKey, 
+  setGeminiApiKey 
+}) => {
   const {
     apiKey,
     setApiKey,
-    geminiApiKey,
-    setGeminiApiKey,
     rawContent,
     setRawContent,
     contentType,
@@ -26,7 +32,7 @@ const UnifiedArticleProcessor: React.FC = () => {
     processingStep,
     processStatus,
     handleProcess,
-  } = useUnifiedWorkflow();
+  } = useUnifiedWorkflow(geminiApiKey);
 
   return (
     <Card className="w-full mx-auto bg-black/90 border-cyber-blue/30">
@@ -40,15 +46,7 @@ const UnifiedArticleProcessor: React.FC = () => {
         <Alert className="bg-cyber-dark border-cyber-blue">
           <AlertCircle className="h-4 w-4 text-cyber-blue" />
           <AlertDescription className="text-cyber-light">
-            Enter your Gemini API key and admin key to process content. You can get a Gemini API key from the{' '}
-            <a 
-              href="https://ai.google.dev/" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-cyber-blue underline hover:text-cyber-blue/80"
-            >
-              Google AI Developer Portal
-            </a>
+            Using your stored Gemini API key for AI processing. You can update it below if needed.
           </AlertDescription>
         </Alert>
         

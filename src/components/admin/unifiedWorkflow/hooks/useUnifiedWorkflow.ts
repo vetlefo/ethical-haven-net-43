@@ -5,9 +5,9 @@ import { supabase } from '@/integrations/supabase/client';
 
 export type StepStatus = 'waiting' | 'processing' | 'completed' | 'error';
 
-export const useUnifiedWorkflow = () => {
+export const useUnifiedWorkflow = (initialGeminiApiKey: string = '') => {
   const [apiKey, setApiKey] = useState('compliance-admin-key-2023');
-  const [geminiApiKey, setGeminiApiKey] = useState('');
+  const [geminiApiKey, setGeminiApiKey] = useState(initialGeminiApiKey);
   const [rawContent, setRawContent] = useState('');
   const [contentType, setContentType] = useState('compliance');
   
