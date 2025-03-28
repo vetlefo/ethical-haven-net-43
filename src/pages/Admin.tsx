@@ -3,12 +3,13 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ShieldAlert } from 'lucide-react';
 import { Terminal } from '@/components/Terminal';
 import AdminAIReportGenerator from '@/components/admin/reportGenerator/AdminAIReportGenerator';
 import AdminRagEmbeddings from '@/components/admin/ragEmbeddings/AdminRagEmbeddings';
 import UnifiedArticleProcessor from '@/components/admin/unifiedWorkflow/UnifiedArticleProcessor';
 import { toast } from '@/hooks/use-toast';
+import { requireAdmin } from '@/utils/authUtils';
 
 // Store for the terminal
 export class TerminalStore {
@@ -44,23 +45,24 @@ const Admin = () => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
+        setLoading(true);
         
-        if (error) throw error;
+        // Use our requireAdmin function to check if user is admin
+        const isAdminUser = await requireAdmin(navigate);
         
-        if (!session) {
+        if (!isAdminUser) {
           toast({
-            title: "Authentication required",
-            description: "You must be logged in to access the admin panel",
+            title: "Unauthorized",
+            description: "You don't have permission to access the admin panel",
             variant: "destructive",
           });
-          navigate('/');
           return;
         }
         
-        // Successfully authenticated
+        // Successfully authenticated as admin
         setAuthenticated(true);
-        TerminalStore.addLine(`Admin session authenticated: ${session.user.email}`);
+        const { data } = await supabase.auth.getSession();
+        TerminalStore.addLine(`Admin session authenticated: ${data.session?.user.email}`);
       } catch (error) {
         console.error('Authentication error:', error);
         toast({
@@ -77,7 +79,7 @@ const Admin = () => {
     checkAuth();
     
     // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_OUT') {
         setAuthenticated(false);
         navigate('/');
@@ -112,6 +114,24 @@ const Admin = () => {
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="w-12 h-12 text-cyber-blue animate-spin" />
           <div className="text-cyber-light text-xl">Verifying credentials...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!authenticated) {
+    return (
+      <div className="min-h-screen bg-cyber-dark flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4 text-center max-w-md mx-auto p-6">
+          <ShieldAlert className="w-16 h-16 text-red-500" />
+          <h2 className="text-cyber-light text-2xl font-bold">Access Denied</h2>
+          <p className="text-cyber-light/70">You don't have permission to access the admin panel. Please contact the administrator if you believe this is an error.</p>
+          <button 
+            onClick={() => navigate('/')}
+            className="mt-4 px-4 py-2 bg-cyber-blue text-white rounded hover:bg-cyber-blue/80 transition-colors"
+          >
+            Return to Home
+          </button>
         </div>
       </div>
     );

@@ -15,7 +15,7 @@ interface TerminalProps {
     command?: string;
     comment?: string;
   };
-  title?: string; // Add title prop
+  title?: string; 
 }
 
 export const Terminal: React.FC<TerminalProps> = ({
