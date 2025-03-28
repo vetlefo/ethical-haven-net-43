@@ -3,9 +3,10 @@ import { useState } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { TerminalStore } from '@/pages/Admin';
+import { StepStatus } from '../Steps';
 
-// Update this type to match the StepStatus type used in Steps.tsx
-export type ProcessStatus = 'idle' | 'processing' | 'completed' | 'error' | 'warning';
+// Use the StepStatus type from Steps.tsx
+export type ProcessStatus = StepStatus;
 
 export const useUnifiedWorkflow = (initialGeminiApiKey: string) => {
   const [apiKey, setApiKey] = useState('compliance-admin-key-2023');
@@ -15,7 +16,7 @@ export const useUnifiedWorkflow = (initialGeminiApiKey: string) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [processingStep, setProcessingStep] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [processStatus, setProcessStatus] = useState<ProcessStatus[]>(['idle', 'idle', 'idle']);
+  const [processStatus, setProcessStatus] = useState<ProcessStatus[]>(['waiting', 'waiting', 'waiting']);
   const [isKeyValidated, setIsKeyValidated] = useState(false);
 
   // Validate the Gemini API key
@@ -94,7 +95,7 @@ export const useUnifiedWorkflow = (initialGeminiApiKey: string) => {
 
     try {
       setIsProcessing(true);
-      setProcessStatus(['processing', 'idle', 'idle']);
+      setProcessStatus(['processing', 'waiting', 'waiting']);
       setCurrentStep(1);
       setProcessingStep(0);
       
@@ -123,7 +124,7 @@ export const useUnifiedWorkflow = (initialGeminiApiKey: string) => {
       TerminalStore.addLine(`Generated report JSON structure: ${Object.keys(JSON.parse(reportJson)).join(', ')}`);
       
       // Step 2: Process for RAG
-      setProcessStatus(['completed', 'processing', 'idle']);
+      setProcessStatus(['completed', 'processing', 'waiting']);
       setProcessingStep(1);
       setCurrentStep(2);
       

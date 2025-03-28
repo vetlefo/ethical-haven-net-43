@@ -1,8 +1,8 @@
 
 import React from 'react';
-import { CheckCircle, Circle, AlertCircle } from 'lucide-react';
+import { CheckCircle, Circle, AlertCircle, AlertTriangle } from 'lucide-react';
 
-export type StepStatus = 'waiting' | 'processing' | 'completed' | 'error';
+export type StepStatus = 'waiting' | 'processing' | 'completed' | 'error' | 'warning' | 'idle';
 
 interface StepProps {
   title: string;
@@ -20,11 +20,14 @@ export const Step: React.FC<StepProps> = ({ title, description, status }) => {
         {status === 'processing' && (
           <Circle className="w-6 h-6 text-cyber-blue animate-pulse" />
         )}
-        {status === 'waiting' && (
+        {(status === 'waiting' || status === 'idle') && (
           <Circle className="w-6 h-6 text-cyber-light/50" />
         )}
         {status === 'error' && (
           <AlertCircle className="w-6 h-6 text-red-500" />
+        )}
+        {status === 'warning' && (
+          <AlertTriangle className="w-6 h-6 text-yellow-500" />
         )}
       </div>
       <div>
