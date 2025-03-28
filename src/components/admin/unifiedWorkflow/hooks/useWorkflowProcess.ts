@@ -65,26 +65,32 @@ export const useWorkflowProcess = () => {
         TerminalStore.addLine(`Content preview: ${rawContent.substring(0, 50)}...`);
       }
       
-      // Fix: Send data as an object with a content property
+      // Create a proper stringified JSON payload
       const requestPayload = { 
-        content: rawContent,
+        prompt: rawContent,
         contentType: contentType
       };
       
       TerminalStore.addLine(`Sending request to generate-report with payload: ${JSON.stringify(requestPayload, null, 2)}`);
       
-      const { data: transformData, error: transformError } = await supabase.functions.invoke('generate-report', {
-        body: requestPayload,
+      // Use a direct fetch call with proper headers to ensure correct content type
+      const response = await fetch(`${supabase.supabaseUrl}/functions/v1/generate-report`, {
+        method: 'POST',
         headers: {
           'Authorization': `Bearer ${authToken}`,
-          'Content-Type': 'application/json'
-        }
+          'Content-Type': 'application/json',
+          'apikey': supabase.supabaseKey
+        },
+        body: JSON.stringify(requestPayload)
       });
       
-      if (transformError) {
-        TerminalStore.addLine(`Transformation error: ${transformError.message}`);
-        throw new Error(`Transformation error: ${transformError.message}`);
+      if (!response.ok) {
+        const errorText = await response.text();
+        TerminalStore.addLine(`Transformation error: Status ${response.status}, Response: ${errorText}`);
+        throw new Error(`Transformation error: ${response.status} ${response.statusText}`);
       }
+      
+      const transformData = await response.json();
       
       if (!transformData || transformData.success === false) {
         TerminalStore.addLine(`Transformation failed: ${transformData?.error || 'Unknown error'}`);

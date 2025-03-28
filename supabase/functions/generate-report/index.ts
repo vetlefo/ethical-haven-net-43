@@ -173,16 +173,29 @@ serve(async (req) => {
   try {
     // Only allow POST method
     if (req.method !== 'POST') {
-      throw new Error('Method not allowed. Only POST requests are supported.');
+      console.error("Method not allowed:", req.method);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Method not allowed. Only POST requests are supported.'
+        }),
+        { 
+          status: 405, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
     }
 
-    // Parse the request body
+    // Safely parse the request body
     let requestData;
     try {
-      const requestText = await req.text();
+      // Clone the request to ensure we can read the body
+      const clonedReq = req.clone();
+      const requestText = await clonedReq.text();
       console.log("Raw request body:", requestText);
       
       if (!requestText || requestText.trim() === '') {
+        console.error("Empty request body received");
         return new Response(
           JSON.stringify({ 
             success: false, 
@@ -230,6 +243,7 @@ serve(async (req) => {
 
     // Check if we have content or prompt
     if (!requestData.prompt && !requestData.content) {
+      console.error("Missing prompt or content in request:", requestData);
       return new Response(
         JSON.stringify({ 
           success: false, 
@@ -245,6 +259,7 @@ serve(async (req) => {
     // Determine which field to use (content or prompt)
     const inputContent = requestData.content || requestData.prompt;
     if (!inputContent || !inputContent.trim()) {
+      console.error("Empty prompt or content provided");
       return new Response(
         JSON.stringify({ 
           success: false, 
@@ -307,6 +322,7 @@ serve(async (req) => {
     console.log("Received response from Gemini API");
     
     if (!geminiData.candidates || !geminiData.candidates[0] || !geminiData.candidates[0].content) {
+      console.error("Invalid response from Gemini API - no content candidates found");
       return new Response(
         JSON.stringify({ 
           success: false, 
@@ -321,25 +337,39 @@ serve(async (req) => {
     
     // Extract the generated content
     const generatedText = geminiData.candidates[0].content.parts[0].text;
+    console.log("Generated text received, length:", generatedText.length);
     
     // Find and extract the JSON object from the response
     // The AI might wrap the JSON in ```json ``` or other formatting
-    let jsonMatch = generatedText.match(/```json\n([\s\S]*?)\n```/) || 
-                   generatedText.match(/```\n([\s\S]*?)\n```/) || 
-                   generatedText.match(/{[\s\S]*}/);
-                   
-    let reportJson = "";
+    const jsonMatches = [
+      // Try to match JSON inside code blocks first
+      generatedText.match(/```json\n([\s\S]*?)\n```/),
+      generatedText.match(/```\n([\s\S]*?)\n```/),
+      // Then try to match a JSON object anywhere
+      generatedText.match(/{[\s\S]*}/)
+    ];
     
-    if (jsonMatch) {
-      reportJson = jsonMatch[0].startsWith('```') ? jsonMatch[1] : jsonMatch[0];
-    } else {
+    let reportJson = "";
+    let matchFound = false;
+    
+    for (const match of jsonMatches) {
+      if (match) {
+        reportJson = match[0].startsWith('```') ? match[1] : match[0];
+        matchFound = true;
+        break;
+      }
+    }
+    
+    if (!matchFound) {
+      console.error("Failed to extract JSON from response");
       reportJson = generatedText; // If no pattern matched, use the entire text
     }
     
     // Verify the JSON is valid
     try {
-      JSON.parse(reportJson);
+      const parsedJson = JSON.parse(reportJson);
       console.log("Successfully parsed report JSON");
+      console.log("Report title:", parsedJson.title);
     } catch (error) {
       console.error("Invalid JSON in response:", error);
       console.log("First 200 chars of response:", reportJson.substring(0, 200));
