@@ -6,29 +6,28 @@ interface ApiKeyInputProps {
   value: string;
   onChange: (value: string) => void;
   label: string;
-  description?: string;
   placeholder?: string;
+  description?: string;
 }
 
 const ApiKeyInput: React.FC<ApiKeyInputProps> = ({
   value,
   onChange,
   label,
-  description,
-  placeholder = "Enter your API key"
+  placeholder = "Enter API key",
+  description
 }) => {
   return (
     <div>
-      <label htmlFor="apiKey" className="block text-sm font-medium text-cyber-light mb-1">
+      <label className="block text-sm font-medium text-cyber-light mb-1">
         {label}
       </label>
       <Input
-        id="apiKey"
         type="password"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full"
+        className="w-full bg-cyber-slate border-cyber-blue/30 text-cyber-light"
       />
       {description && (
         <p className="text-xs text-cyber-light/70 mt-1">

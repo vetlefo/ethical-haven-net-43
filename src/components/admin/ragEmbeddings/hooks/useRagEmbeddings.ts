@@ -1,6 +1,7 @@
 
 import { useState } from 'react';
 import { toast } from '@/hooks/use-toast';
+import { apiRoutes } from '@/integrations/supabase/client';
 
 export const useRagEmbeddings = () => {
   const [apiKey, setApiKey] = useState('');
@@ -34,7 +35,7 @@ export const useRagEmbeddings = () => {
     try {
       setIsProcessing(true);
       
-      const response = await fetch('/api/process-for-rag', {
+      const response = await fetch(apiRoutes.processForRag, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -46,10 +47,27 @@ export const useRagEmbeddings = () => {
         }),
       });
       
-      const result = await response.json();
-      
       if (!response.ok) {
-        throw new Error(result.error || 'Failed to process content');
+        const errorText = await response.text();
+        throw new Error(errorText || `Server responded with status: ${response.status}`);
+      }
+      
+      // Safely handle JSON parsing to avoid "Unexpected end of JSON input" error
+      const text = await response.text();
+      if (!text) {
+        throw new Error('Server returned an empty response');
+      }
+      
+      let result;
+      try {
+        result = JSON.parse(text);
+      } catch (parseError) {
+        console.error('Error parsing JSON response:', parseError, 'Response text:', text);
+        throw new Error(`Invalid JSON response: ${parseError.message}`);
+      }
+      
+      if (!result.processedContent) {
+        throw new Error('Response is missing processedContent field');
       }
       
       setProcessedContent(result.processedContent);

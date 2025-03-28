@@ -28,7 +28,7 @@ const RawContentForm: React.FC<RawContentFormProps> = ({
   onProcess
 }) => {
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 text-cyber-light">
       <ApiKeyInput
         value={geminiApiKey}
         onChange={setGeminiApiKey}
@@ -42,10 +42,10 @@ const RawContentForm: React.FC<RawContentFormProps> = ({
           Content Type
         </label>
         <Select value={contentType} onValueChange={setContentType}>
-          <SelectTrigger className="w-full">
+          <SelectTrigger className="w-full bg-cyber-slate border-cyber-blue/30">
             <SelectValue placeholder="Select content type" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="bg-cyber-slate text-cyber-light">
             <SelectItem value="compliance">Compliance Report</SelectItem>
             <SelectItem value="competitive-intel">Competitive Intelligence</SelectItem>
           </SelectContent>
@@ -67,14 +67,14 @@ const RawContentForm: React.FC<RawContentFormProps> = ({
             ? "Paste the competitive intelligence report to extract structured data about multiple competitors"
             : "Paste the raw compliance report content to be processed for RAG embeddings"
           }
-          className="w-full min-h-[200px]"
+          className="w-full min-h-[200px] bg-cyber-slate border-cyber-blue/30 text-cyber-light"
         />
       </div>
       
       <Button 
         type="button" 
         onClick={onProcess}
-        className="w-full" 
+        className="w-full bg-cyber-blue hover:bg-cyber-blue/80" 
         disabled={isProcessing}
       >
         {isProcessing ? (

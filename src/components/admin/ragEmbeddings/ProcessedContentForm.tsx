@@ -25,7 +25,7 @@ const ProcessedContentForm: React.FC<ProcessedContentFormProps> = ({
   onSubmit
 }) => {
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 text-cyber-light">
       <JsonEditor
         value={processedContent}
         onChange={onContentChange}
@@ -43,7 +43,7 @@ const ProcessedContentForm: React.FC<ProcessedContentFormProps> = ({
       
       <Button 
         type="button" 
-        className="w-full" 
+        className="w-full bg-cyber-blue hover:bg-cyber-blue/80" 
         disabled={isSubmitting || !isValid}
         onClick={onSubmit}
       >

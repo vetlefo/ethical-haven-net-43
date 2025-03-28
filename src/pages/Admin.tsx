@@ -82,7 +82,7 @@ const Admin: React.FC = () => {
             </div>
             
             <div className="lg:col-span-1">
-              <Card className="bg-background/80 backdrop-blur-sm border-cyber-blue/30 h-full">
+              <Card className="bg-cyber-dark border-cyber-blue/30 h-full">
                 <Terminal 
                   lines={terminalLines} 
                   typingSpeed={10}

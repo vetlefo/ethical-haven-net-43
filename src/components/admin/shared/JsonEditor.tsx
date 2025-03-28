@@ -1,7 +1,6 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Textarea } from '@/components/ui/textarea';
-import { FileCheck, FileWarning } from 'lucide-react';
 
 interface JsonEditorProps {
   value: string;
@@ -15,51 +14,19 @@ const JsonEditor: React.FC<JsonEditorProps> = ({
   value,
   onChange,
   label,
-  placeholder = "JSON content will appear here",
+  placeholder = "Enter JSON",
   description
 }) => {
-  const [isValid, setIsValid] = useState(true);
-  
-  const handleChange = (newValue: string) => {
-    onChange(newValue);
-    // Check if the content is valid JSON
-    try {
-      if (newValue.trim()) {
-        JSON.parse(newValue);
-        setIsValid(true);
-      } else {
-        setIsValid(true); // Empty is valid for our purposes
-      }
-    } catch (e) {
-      setIsValid(false);
-    }
-  };
-  
   return (
     <div>
-      <div className="flex justify-between items-center mb-1">
-        <label htmlFor="jsonContent" className="block text-sm font-medium text-cyber-light">
-          {label}
-        </label>
-        {value && (
-          <div className="flex items-center">
-            {isValid ? (
-              <FileCheck className="h-4 w-4 text-green-500 mr-1" />
-            ) : (
-              <FileWarning className="h-4 w-4 text-yellow-500 mr-1" />
-            )}
-            <span className={`text-xs ${isValid ? 'text-green-500' : 'text-yellow-500'}`}>
-              {isValid ? 'Valid JSON' : 'Invalid JSON'}
-            </span>
-          </div>
-        )}
-      </div>
+      <label className="block text-sm font-medium text-cyber-light mb-1">
+        {label}
+      </label>
       <Textarea
-        id="jsonContent"
         value={value}
-        onChange={(e) => handleChange(e.target.value)}
+        onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full min-h-[300px] font-mono text-sm"
+        className="w-full min-h-[200px] font-mono text-sm bg-cyber-slate border-cyber-blue/30 text-cyber-light"
       />
       {description && (
         <p className="text-xs text-cyber-light/70 mt-1">

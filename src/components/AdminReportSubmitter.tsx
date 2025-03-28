@@ -113,7 +113,7 @@ const AdminReportSubmitter: React.FC = () => {
   };
 
   return (
-    <Card className="w-full max-w-4xl mx-auto bg-background/80 backdrop-blur-sm border-cyber-blue/30">
+    <Card className="w-full max-w-4xl mx-auto bg-cyber-dark border-cyber-blue/30">
       <CardHeader>
         <CardTitle className="text-2xl text-cyber-light">Admin Report Submission</CardTitle>
         <CardDescription className="text-cyber-light/70">
