@@ -20,6 +20,7 @@ const AdminAIReportGenerator: React.FC = () => {
     isGenerating,
     isSubmitting,
     isValid,
+    isKeyValidated,
     handleGenerate,
     handleReportChange,
     handleSubmit,
