@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FilterIcon, Search, X, Calendar, Tag, ChevronRight, Globe } from 'lucide-react';
+import { FilterIcon, Search, X, Calendar, Tag, ChevronRight, Globe, Database } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
 import { ComplianceReport, getReports } from '@/services/reportService';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Filter {
   category?: string;
@@ -23,6 +24,7 @@ const ComplianceReports: React.FC = () => {
   const [filter, setFilter] = useState<Filter>({});
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const { isAdmin } = useAuth();
 
   useEffect(() => {
     const fetchReports = async () => {
@@ -113,11 +115,21 @@ const ComplianceReports: React.FC = () => {
         {/* Header Section */}
         <div className="mb-8 flex justify-between items-center">
           <h1 className="text-3xl font-bold text-white">Compliance Reports</h1>
-          <Link to="/admin">
-            <Button className="bg-cyber-blue hover:bg-cyber-blue/80">
-              Add New Report
-            </Button>
-          </Link>
+          <div className="flex space-x-3">
+            {isAdmin && (
+              <Link to="/rag-processor">
+                <Button variant="outline" className="border-cyber-blue/30 text-cyber-blue hover:bg-cyber-blue/10">
+                  <Database className="mr-2 h-4 w-4" />
+                  RAG Processor
+                </Button>
+              </Link>
+            )}
+            <Link to="/admin">
+              <Button className="bg-cyber-blue hover:bg-cyber-blue/80">
+                Add New Report
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {/* Search and Filter Bar */}
