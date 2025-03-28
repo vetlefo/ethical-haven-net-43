@@ -52,12 +52,10 @@ serve(async (req) => {
       throw new Error('Method not allowed. Only POST requests are supported.');
     }
 
-    // Parse the request body
-    const reportData: ReportInput = await req.json();
-    
-    // Validate required fields
-    if (!reportData.title || !reportData.slug || !reportData.summary || !reportData.content) {
-      throw new Error('Missing required fields: title, slug, summary, and content are required.');
+    // Get the authorization header
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new Error('Missing authorization header');
     }
 
     // Create a Supabase client with the Deno runtime
@@ -69,6 +67,25 @@ serve(async (req) => {
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Verify the JWT token
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
+    if (authError || !user) {
+      console.error('Authentication error:', authError);
+      throw new Error('Unauthorized: Invalid or expired token');
+    }
+
+    console.log('Authenticated user:', user.id);
+
+    // Parse the request body
+    const reportData: ReportInput = await req.json();
+    
+    // Validate required fields
+    if (!reportData.title || !reportData.slug || !reportData.summary || !reportData.content) {
+      throw new Error('Missing required fields: title, slug, summary, and content are required.');
+    }
 
     // Insert the report into the database
     const { data, error } = await supabase
@@ -82,13 +99,14 @@ serve(async (req) => {
         region: reportData.region || null,
         tags: reportData.tags || [],
         category: reportData.category || null,
-        author: reportData.author || null,
+        author: reportData.author || user.email || null, // Use authenticated user email as author if not provided
         cover_image: reportData.cover_image || null,
         read_time: reportData.read_time || null,
         is_featured: reportData.is_featured !== undefined ? reportData.is_featured : false,
         published_at: new Date().toISOString(),
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
+        user_id: user.id // Store the user_id who created the report
       })
       .select();
 
@@ -118,7 +136,7 @@ serve(async (req) => {
         error: error.message 
       }),
       { 
-        status: 400, 
+        status: 401, // Use 401 for authentication errors
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
     );
