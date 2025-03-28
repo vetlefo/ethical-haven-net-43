@@ -32,25 +32,25 @@ export const useUnifiedWorkflow = (initialGeminiApiKey: string = '') => {
     updateStepStatus(0, 'processing');
     
     try {
-      const response = await fetch('/api/generate-report', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      // Use the Supabase edge function instead of a direct fetch to the API
+      const { data, error } = await supabase.functions.invoke('generate-report', {
+        body: {
           geminiApiKey,
           prompt: rawContent
-        }),
+        }
       });
       
-      const result = await response.json();
+      if (error) {
+        console.error('Error from Supabase function:', error);
+        throw new Error(error.message || 'Failed to transform content');
+      }
       
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to transform content');
+      if (!data || !data.reportJson) {
+        throw new Error('No data returned from the function or missing reportJson');
       }
       
       updateStepStatus(0, 'completed');
-      return result.reportJson;
+      return data.reportJson;
     } catch (error) {
       console.error('Error transforming content:', error);
       updateStepStatus(0, 'error');
