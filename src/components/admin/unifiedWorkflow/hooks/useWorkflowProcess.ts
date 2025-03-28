@@ -13,17 +13,7 @@ export const useWorkflowProcess = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [processStatus, setProcessStatus] = useState<ProcessStatus[]>(['waiting', 'waiting', 'waiting']);
 
-  const handleProcess = async (apiKey: string, geminiApiKey: string): Promise<void> => {
-    if (!geminiApiKey.trim()) {
-      toast({
-        title: 'Gemini API Key Required',
-        description: 'Please enter your Gemini API key for this session',
-        variant: 'destructive',
-      });
-      TerminalStore.addLine(`Error: Gemini API key is required`);
-      return;
-    }
-
+  const handleProcess = async (apiKey: string): Promise<void> => {
     if (!apiKey.trim()) {
       toast({
         title: 'Admin API Key Required',
@@ -56,8 +46,7 @@ export const useWorkflowProcess = () => {
       
       const { data: transformData, error: transformError } = await supabase.functions.invoke('generate-report', {
         body: {
-          geminiApiKey,
-          prompt: rawContent,
+          content: rawContent,
           contentType
         }
       });
@@ -83,7 +72,6 @@ export const useWorkflowProcess = () => {
       
       const { data: ragData, error: ragError } = await supabase.functions.invoke('process-for-rag', {
         body: {
-          geminiApiKey,
           content: reportJson,
           contentType
         }

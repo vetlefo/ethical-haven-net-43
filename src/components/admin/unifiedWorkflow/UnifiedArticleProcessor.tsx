@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { AlertCircle, FileText, Loader2, KeyRound } from 'lucide-react';
+import { AlertCircle, FileText, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import ApiKeyInput from '../shared/ApiKeyInput';
@@ -11,15 +11,7 @@ import { toast } from '@/hooks/use-toast';
 import { useUnifiedWorkflow } from './hooks/useUnifiedWorkflow';
 import { Steps, Step } from './Steps';
 
-interface UnifiedArticleProcessorProps {
-  geminiApiKey: string;
-  setGeminiApiKey: (key: string) => void;
-}
-
-const UnifiedArticleProcessor: React.FC<UnifiedArticleProcessorProps> = ({ 
-  geminiApiKey, 
-  setGeminiApiKey 
-}) => {
+const UnifiedArticleProcessor: React.FC = () => {
   const {
     apiKey,
     setApiKey,
@@ -31,38 +23,8 @@ const UnifiedArticleProcessor: React.FC<UnifiedArticleProcessorProps> = ({
     isProcessing,
     processingStep,
     processStatus,
-    handleProcess,
-    validateGeminiApiKey,
-    isKeyValidated,
-    validationInProgress
-  } = useUnifiedWorkflow(geminiApiKey);
-
-  // Handle manual key validation
-  const handleValidateKey = async () => {
-    if (!geminiApiKey.trim()) {
-      toast({
-        title: "API Key Required",
-        description: "Please enter a Gemini API key before validating.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    const isValid = await validateGeminiApiKey(geminiApiKey);
-    
-    if (isValid) {
-      toast({
-        title: "API Key Validated",
-        description: "Your Gemini API key has been validated successfully.",
-      });
-    } else {
-      toast({
-        title: "Invalid API Key",
-        description: "The API key provided is invalid. Please check and try again.",
-        variant: "destructive"
-      });
-    }
-  };
+    handleProcess
+  } = useUnifiedWorkflow();
 
   return (
     <Card className="w-full mx-auto bg-black/90 border-cyber-blue/30">
@@ -76,48 +38,9 @@ const UnifiedArticleProcessor: React.FC<UnifiedArticleProcessorProps> = ({
         <Alert className="bg-cyber-dark border-cyber-blue">
           <AlertCircle className="h-4 w-4 text-cyber-blue" />
           <AlertDescription className="text-cyber-light">
-            Gemini API key is required for content processing. Please enter a valid key to continue.
+            Gemini API key is configured in your Supabase environment. You can proceed with content processing.
           </AlertDescription>
         </Alert>
-        
-        <div className="space-y-4">
-          <ApiKeyInput
-            value={geminiApiKey}
-            onChange={setGeminiApiKey}
-            label="Gemini API Key (Session Only)"
-            placeholder="Enter your Gemini API key for this session only"
-            description="This key is only stored in your browser for this session and is not saved to our database."
-            validateKey={validateGeminiApiKey}
-          />
-          
-          <Button 
-            onClick={handleValidateKey} 
-            disabled={validationInProgress || !geminiApiKey.trim()}
-            variant="outline"
-            className="w-full border-cyber-blue/50 hover:bg-cyber-blue/20"
-          >
-            {validationInProgress ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Validating...
-              </>
-            ) : (
-              <>
-                <KeyRound className="mr-2 h-4 w-4" />
-                Validate Gemini API Key
-              </>
-            )}
-          </Button>
-          
-          {isKeyValidated && (
-            <Alert className="bg-green-950/50 border-green-500">
-              <AlertCircle className="h-4 w-4 text-green-500" />
-              <AlertDescription className="text-green-400">
-                API key validated successfully. You can now process content.
-              </AlertDescription>
-            </Alert>
-          )}
-        </div>
         
         <ApiKeyInput
           value={apiKey}
@@ -184,7 +107,7 @@ const UnifiedArticleProcessor: React.FC<UnifiedArticleProcessorProps> = ({
           type="button" 
           onClick={handleProcess}
           className="w-full bg-cyber-blue hover:bg-cyber-blue/80" 
-          disabled={isProcessing || !isKeyValidated}
+          disabled={isProcessing}
         >
           {isProcessing ? (
             <>
@@ -193,8 +116,6 @@ const UnifiedArticleProcessor: React.FC<UnifiedArticleProcessorProps> = ({
               {processingStep === 1 && "Processing for RAG..."}
               {processingStep === 2 && "Storing in Database..."}
             </>
-          ) : !isKeyValidated ? (
-            "Please validate your API key first"
           ) : (
             <>
               <FileText className="mr-2 h-4 w-4" />

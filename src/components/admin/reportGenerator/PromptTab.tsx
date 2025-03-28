@@ -3,37 +3,30 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2, Sparkles } from 'lucide-react';
-import ApiKeyInput from '../shared/ApiKeyInput';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 
 interface PromptTabProps {
-  geminiApiKey: string;
-  setGeminiApiKey: (key: string) => void;
   prompt: string;
   setPrompt: (prompt: string) => void;
   isGenerating: boolean;
   onGenerate: () => void;
-  validateGeminiApiKey?: (key: string) => Promise<boolean>;
 }
 
 const PromptTab: React.FC<PromptTabProps> = ({
-  geminiApiKey,
-  setGeminiApiKey,
   prompt,
   setPrompt,
   isGenerating,
-  onGenerate,
-  validateGeminiApiKey
+  onGenerate
 }) => {
   return (
     <div className="space-y-6">
-      <ApiKeyInput
-        value={geminiApiKey}
-        onChange={setGeminiApiKey}
-        label="Gemini API Key (Session Only)"
-        placeholder="Enter your Gemini API key for this session only"
-        description="This key is only stored in your browser for this session and is not saved to our database."
-        validateKey={validateGeminiApiKey}
-      />
+      <Alert className="bg-cyber-dark border-cyber-blue">
+        <AlertCircle className="h-4 w-4 text-cyber-blue" />
+        <AlertDescription className="text-cyber-light">
+          Gemini API key is configured in your Supabase environment. You can proceed with content processing.
+        </AlertDescription>
+      </Alert>
       
       <div>
         <label htmlFor="prompt" className="block text-sm font-medium text-cyber-light mb-1">

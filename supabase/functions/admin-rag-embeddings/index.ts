@@ -4,6 +4,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.20.0";
 
 // Get admin key from environment variables
 const ADMIN_KEY = Deno.env.get("ADMIN_API_KEY") || "compliance-admin-key-2023";
+// Get Gemini API key from environment variables
+const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
 
 // CORS headers for browser access
 const corsHeaders = {

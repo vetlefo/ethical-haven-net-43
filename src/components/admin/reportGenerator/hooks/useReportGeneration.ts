@@ -3,7 +3,6 @@ import { useState, useCallback } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { TerminalStore } from '@/pages/Admin';
-import { useApiKeyValidation } from './useApiKeyValidation';
 import { useReportSubmission } from './useReportSubmission';
 
 export interface UseReportGenerationProps {
@@ -11,17 +10,6 @@ export interface UseReportGenerationProps {
 }
 
 export const useReportGeneration = ({ setActiveTab }: UseReportGenerationProps) => {
-  // Initialize Gemini API key from session storage
-  const initialGeminiApiKey = sessionStorage.getItem('geminiApiKey') || '';
-  
-  // API key validation - specifically for Gemini
-  const { 
-    apiKey: geminiApiKey, 
-    setApiKey: setGeminiApiKey, 
-    isKeyValidated,
-    validateGeminiApiKey 
-  } = useApiKeyValidation(initialGeminiApiKey);
-  
   // Report state
   const [isGenerating, setIsGenerating] = useState(false);
   const [prompt, setPrompt] = useState('');
@@ -38,16 +26,6 @@ export const useReportGeneration = ({ setActiveTab }: UseReportGenerationProps) 
 
   // Generate report using the Gemini API
   const handleGenerate = async () => {
-    if (!geminiApiKey.trim() || !isKeyValidated) {
-      toast({
-        title: 'Gemini API Key Required',
-        description: 'Please enter a valid Gemini API key for this session',
-        variant: 'destructive',
-      });
-      TerminalStore.addLine(`Error: Valid Gemini API key required for report generation`);
-      return;
-    }
-
     if (!prompt.trim()) {
       toast({
         title: 'Content Required',
@@ -62,13 +40,9 @@ export const useReportGeneration = ({ setActiveTab }: UseReportGenerationProps) 
       setIsGenerating(true);
       TerminalStore.addLine(`Starting report generation process...`);
       
-      // Save valid key to sessionStorage
-      sessionStorage.setItem('geminiApiKey', geminiApiKey);
-      
       TerminalStore.addLine(`Sending request to generate-report function...`);
       const { data, error } = await supabase.functions.invoke('generate-report', {
         body: {
-          geminiApiKey,
           prompt
         }
       });
@@ -134,18 +108,14 @@ export const useReportGeneration = ({ setActiveTab }: UseReportGenerationProps) 
   return {
     apiKey,
     setApiKey,
-    geminiApiKey,
-    setGeminiApiKey,
     prompt,
     setPrompt,
     generatedReport,
     isGenerating,
     isSubmitting,
     isValid,
-    isKeyValidated,
     handleGenerate,
     handleReportChange,
-    handleSubmit,
-    validateGeminiApiKey
+    handleSubmit
   };
 };

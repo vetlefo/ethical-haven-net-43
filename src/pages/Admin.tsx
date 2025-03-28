@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+
+import React, { useState } from 'react';
 import { Helmet } from 'react-helmet';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -23,6 +24,7 @@ export const TerminalStore = {
     "Schema validation module loaded.",
     "JSON formatter ready.",
     "Vector embedding module initialized.",
+    "Gemini API key loaded from Supabase environment.",
     "Ready to process compliance reports."
   ],
   addLine: (line: string) => {},
@@ -31,20 +33,9 @@ export const TerminalStore = {
 
 const Admin: React.FC = () => {
   const [terminalLines, setTerminalLines] = useState<string[]>(TerminalStore.lines);
-  
-  // Store the Gemini API key at the top level so it can be shared with child components
-  const [geminiApiKey, setGeminiApiKey] = useState(() => {
-    // Don't use stored key from sessionStorage since it was over-used
-    return '';
-  });
-
-  // Remove auto-validation logic
-  const [hasAttemptedValidation, setHasAttemptedValidation] = useState(false);
-  const validationInProgressRef = useRef(false);
-  const validationDebounceRef = useRef<NodeJS.Timeout | null>(null);
 
   // Update the TerminalStore methods to modify the terminal lines
-  useEffect(() => {
+  React.useEffect(() => {
     TerminalStore.addLine = (line: string) => {
       setTerminalLines(prev => [...prev, line]);
     };
@@ -53,9 +44,6 @@ const Admin: React.FC = () => {
       setTerminalLines(prev => [...prev, ...newLines]);
     };
   }, []);
-
-  // Remove auto-validation on component load
-  
 
   const executeCommand = async (command: string) => {
     TerminalStore.addLine(`$ ${command}`);
@@ -86,7 +74,7 @@ const Admin: React.FC = () => {
       TerminalStore.addLine("System Status:");
       TerminalStore.addLine("- Database: Connected");
       TerminalStore.addLine("- API: Connected");
-      TerminalStore.addLine("- Gemini API: " + (geminiApiKey ? "Key available" : "No key set"));
+      TerminalStore.addLine("- Gemini API: Configured in Supabase environment");
       TerminalStore.addLine("- Processing Engine: Ready");
       return;
     }
@@ -112,22 +100,11 @@ const Admin: React.FC = () => {
     
     TerminalStore.addLine(`Processing command: ${command}...`);
     
-    if (!geminiApiKey) {
-      TerminalStore.addLine(`Error: Gemini API key is required. Please set it in the tabs above.`);
-      toast({
-        title: "API Key Required",
-        description: "Please set your Gemini API key in the tabs above.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
     try {
       TerminalStore.addLine(`Connecting to Supabase function...`);
       
       const { data, error } = await supabase.functions.invoke('generate-report', {
         body: {
-          geminiApiKey,
           prompt: command
         }
       });
@@ -165,7 +142,7 @@ const Admin: React.FC = () => {
                 </TabsList>
                 
                 <TabsContent value="unified">
-                  <UnifiedArticleProcessor geminiApiKey={geminiApiKey} setGeminiApiKey={setGeminiApiKey} />
+                  <UnifiedArticleProcessor />
                 </TabsContent>
                 
                 <TabsContent value="manual">

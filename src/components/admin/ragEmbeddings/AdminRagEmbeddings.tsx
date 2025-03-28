@@ -9,8 +9,6 @@ const AdminRagEmbeddings: React.FC = () => {
   const {
     apiKey,
     setApiKey,
-    geminiApiKey,
-    setGeminiApiKey,
     rawContent,
     setRawContent,
     processedContent,
@@ -34,8 +32,6 @@ const AdminRagEmbeddings: React.FC = () => {
       </CardHeader>
       <CardContent className="space-y-6">
         <RawContentForm
-          geminiApiKey={geminiApiKey}
-          setGeminiApiKey={setGeminiApiKey}
           rawContent={rawContent}
           setRawContent={setRawContent}
           contentType={contentType}

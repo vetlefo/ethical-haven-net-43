@@ -7,7 +7,6 @@ import { useContentValidation } from './useContentValidation';
 export const useRagEmbeddings = () => {
   // State variables
   const [apiKey, setApiKey] = useState('compliance-admin-key-2023');
-  const [geminiApiKey, setGeminiApiKey] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [rawContent, setRawContent] = useState('');
@@ -24,7 +23,6 @@ export const useRagEmbeddings = () => {
       setIsProcessing(true);
       
       const result = await processContent({
-        geminiApiKey,
         rawContent,
         contentType
       });
@@ -95,8 +93,6 @@ export const useRagEmbeddings = () => {
   return {
     apiKey,
     setApiKey,
-    geminiApiKey, 
-    setGeminiApiKey,
     rawContent,
     setRawContent,
     processedContent,

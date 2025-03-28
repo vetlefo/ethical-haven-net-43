@@ -1,22 +1,12 @@
 
 import { useState } from 'react';
-import { useGeminiKeyValidation } from './useGeminiKeyValidation';
 import { useWorkflowProcess } from './useWorkflowProcess';
 import { ProcessStatus } from '../Steps';
 
 export type { ProcessStatus } from '../Steps';
 
-export const useUnifiedWorkflow = (initialGeminiApiKey: string) => {
+export const useUnifiedWorkflow = () => {
   const [apiKey, setApiKey] = useState('compliance-admin-key-2023');
-  
-  // Use the key validation hook
-  const {
-    geminiApiKey,
-    setGeminiApiKey,
-    isKeyValidated,
-    validateGeminiApiKey,
-    validationInProgress
-  } = useGeminiKeyValidation(''); // Reset default to empty string
   
   // Use the workflow process hook
   const {
@@ -33,18 +23,12 @@ export const useUnifiedWorkflow = (initialGeminiApiKey: string) => {
   
   // Handle process with current state values
   const processContent = async () => {
-    if (!isKeyValidated) {
-      console.error("Cannot process: API key not validated");
-      return;
-    }
-    await handleProcess(apiKey, geminiApiKey);
+    await handleProcess(apiKey);
   };
 
   return {
     apiKey,
     setApiKey,
-    geminiApiKey,
-    setGeminiApiKey,
     rawContent,
     setRawContent,
     contentType,
@@ -53,9 +37,6 @@ export const useUnifiedWorkflow = (initialGeminiApiKey: string) => {
     processingStep,
     isProcessing,
     processStatus,
-    handleProcess: processContent,
-    validateGeminiApiKey,
-    isKeyValidated,
-    validationInProgress
+    handleProcess: processContent
   };
 };

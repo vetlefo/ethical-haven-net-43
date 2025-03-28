@@ -4,7 +4,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { TerminalStore } from '@/pages/Admin';
 
 interface ProcessContentParams {
-  geminiApiKey: string;
   rawContent: string;
   contentType: string;
 }
@@ -16,17 +15,7 @@ interface SubmitContentParams {
 }
 
 export const useRagEmbeddingsApi = () => {
-  const processContent = async ({ geminiApiKey, rawContent, contentType }: ProcessContentParams) => {
-    if (!geminiApiKey.trim()) {
-      toast({
-        title: 'Gemini API Key Required',
-        description: 'Please enter your Gemini API key for this session',
-        variant: 'destructive',
-      });
-      TerminalStore.addLine(`Error: Gemini API key is required for RAG processing`);
-      throw new Error('Gemini API key is required');
-    }
-
+  const processContent = async ({ rawContent, contentType }: ProcessContentParams) => {
     if (!rawContent.trim()) {
       toast({
         title: 'Content Required',
@@ -42,7 +31,6 @@ export const useRagEmbeddingsApi = () => {
     
     const { data, error } = await supabase.functions.invoke('process-for-rag', {
       body: {
-        geminiApiKey,
         content: rawContent,
         contentType
       }
