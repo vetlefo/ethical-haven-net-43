@@ -74,12 +74,15 @@ export const useWorkflowProcess = () => {
       TerminalStore.addLine(`Sending request to generate-report with payload: ${JSON.stringify(requestPayload, null, 2)}`);
       
       // Use a direct fetch call with proper headers to ensure correct content type
-      const response = await fetch(`${supabase.supabaseUrl}/functions/v1/generate-report`, {
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL || 'https://kxvjrktpadujfcxpfuxi.supabase.co'}/functions/v1/generate-report`;
+      const apiKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt4dmpya3RwYWR1amZjeHBmdXhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI2MTkwMzksImV4cCI6MjA1ODE5NTAzOX0.HKDNvLzo8FV1bVk-CNxV2dZ-CCV8NaIrYP_q3ciXHII';
+      
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${authToken}`,
           'Content-Type': 'application/json',
-          'apikey': supabase.supabaseKey
+          'apikey': apiKey
         },
         body: JSON.stringify(requestPayload)
       });
@@ -87,7 +90,7 @@ export const useWorkflowProcess = () => {
       if (!response.ok) {
         const errorText = await response.text();
         TerminalStore.addLine(`Transformation error: Status ${response.status}, Response: ${errorText}`);
-        throw new Error(`Transformation error: ${response.status} ${response.statusText}`);
+        throw new Error(`Transformation error: Edge Function returned a non-2xx status code`);
       }
       
       const transformData = await response.json();
