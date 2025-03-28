@@ -3,6 +3,8 @@ import React from 'react';
 import { CheckCircle, Circle, AlertCircle, AlertTriangle } from 'lucide-react';
 
 export type StepStatus = 'waiting' | 'processing' | 'completed' | 'error' | 'warning' | 'idle';
+// ProcessStatus is an alias for StepStatus for backward compatibility
+export type ProcessStatus = StepStatus;
 
 interface StepProps {
   title: string;

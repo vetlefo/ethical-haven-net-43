@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useGeminiKeyValidation } from './useGeminiKeyValidation';
 import { useWorkflowProcess } from './useWorkflowProcess';
+import { ProcessStatus } from '../Steps';
 
 export type { ProcessStatus } from '../Steps';
 
