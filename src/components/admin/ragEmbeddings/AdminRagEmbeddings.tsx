@@ -25,7 +25,7 @@ const AdminRagEmbeddings: React.FC = () => {
   } = useRagEmbeddings();
 
   return (
-    <Card className="w-full mx-auto bg-cyber-dark border-cyber-blue/30">
+    <Card className="w-full mx-auto bg-black/90 border-cyber-blue/30">
       <CardHeader>
         <CardTitle className="text-2xl text-cyber-light">RAG and Competitive Intelligence</CardTitle>
         <CardDescription className="text-cyber-light/70">

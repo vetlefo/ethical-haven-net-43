@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 // CORS headers for browser access
@@ -210,6 +211,12 @@ Focus on extracting:
 // Function to generate embeddings using Google's Genai API
 async function generateEmbedding(text, apiKey) {
   try {
+    // Check if the text is too long for the embedding API
+    if (text.length > 20000) {
+      console.log(`Text is too long (${text.length} chars), truncating to 20000 chars`);
+      text = text.substring(0, 20000);
+    }
+    
     const response = await fetch(
       "https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-exp-03-07:embedContent?key=" + apiKey,
       {
@@ -243,13 +250,16 @@ async function generateEmbedding(text, apiKey) {
 }
 
 // Function to split text into chunks that are within the token limit
-function splitIntoChunks(text, maxChunkSize = 3000) {
+function splitIntoChunks(text, maxChunkSize = 2000) {
   // Simple splitting by paragraphs first
-  const paragraphs = text.split("\n\n");
+  const paragraphs = text.split(/\n\n+/);
   const chunks = [];
   let currentChunk = "";
 
   for (const paragraph of paragraphs) {
+    // Skip empty paragraphs
+    if (!paragraph.trim()) continue;
+    
     // If adding this paragraph would make the chunk too large, start a new chunk
     if ((currentChunk + paragraph).length > maxChunkSize && currentChunk.length > 0) {
       chunks.push(currentChunk.trim());
@@ -264,7 +274,32 @@ function splitIntoChunks(text, maxChunkSize = 3000) {
     chunks.push(currentChunk.trim());
   }
 
-  return chunks;
+  // If any chunks are still too large, split them by sentences
+  const finalChunks = [];
+  for (const chunk of chunks) {
+    if (chunk.length <= maxChunkSize) {
+      finalChunks.push(chunk);
+    } else {
+      // Split by sentences if chunk is still too large
+      const sentences = chunk.match(/[^.!?]+[.!?]+/g) || [chunk];
+      let sentenceChunk = "";
+      
+      for (const sentence of sentences) {
+        if ((sentenceChunk + sentence).length > maxChunkSize && sentenceChunk.length > 0) {
+          finalChunks.push(sentenceChunk.trim());
+          sentenceChunk = sentence;
+        } else {
+          sentenceChunk += (sentenceChunk ? " " : "") + sentence;
+        }
+      }
+      
+      if (sentenceChunk.trim()) {
+        finalChunks.push(sentenceChunk.trim());
+      }
+    }
+  }
+
+  return finalChunks;
 }
 
 // Process content for RAG with embeddings
@@ -272,25 +307,45 @@ async function processContentForRag(content, apiKey) {
   try {
     // Split the content into manageable chunks
     const contentChunks = splitIntoChunks(content);
+    console.log(`Split content into ${contentChunks.length} chunks`);
+    
     const processedChunks = [];
     
     // Process each chunk and generate embeddings
     for (let i = 0; i < contentChunks.length; i++) {
       const chunk = contentChunks[i];
+      console.log(`Processing chunk ${i + 1}/${contentChunks.length}, size: ${chunk.length} chars`);
       
-      // Generate embedding for this chunk
-      const embedding = await generateEmbedding(chunk, apiKey);
-      
-      processedChunks.push({
-        id: `chunk-${i + 1}`,
-        text: chunk,
-        metadata: {
-          position: i + 1,
-          source: "document",
-          section: `Section ${i + 1}`
-        },
-        embedding: embedding
-      });
+      try {
+        // Generate embedding for this chunk
+        const embedding = await generateEmbedding(chunk, apiKey);
+        
+        processedChunks.push({
+          id: `chunk-${i + 1}`,
+          text: chunk,
+          metadata: {
+            position: i + 1,
+            source: "document",
+            section: `Section ${i + 1}`
+          },
+          embedding: embedding
+        });
+        
+        console.log(`Successfully processed chunk ${i + 1}`);
+      } catch (error) {
+        console.error(`Error processing chunk ${i + 1}:`, error);
+        // Continue with other chunks even if one fails
+        processedChunks.push({
+          id: `chunk-${i + 1}`,
+          text: chunk,
+          metadata: {
+            position: i + 1,
+            source: "document",
+            section: `Section ${i + 1}`
+          },
+          embedding: [] // Empty embedding as a fallback
+        });
+      }
     }
     
     // Create the RAG document
