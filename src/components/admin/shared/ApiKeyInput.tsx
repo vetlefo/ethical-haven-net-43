@@ -25,6 +25,7 @@ const ApiKeyInput: React.FC<ApiKeyInputProps> = ({
   const [isValid, setIsValid] = useState<boolean | null>(null);
   const [showKey, setShowKey] = useState(false);
   const [autoValidationComplete, setAutoValidationComplete] = useState(false);
+  const [validationLock, setValidationLock] = useState(false);
 
   useEffect(() => {
     // When value changes, reset validation status
@@ -36,7 +37,8 @@ const ApiKeyInput: React.FC<ApiKeyInputProps> = ({
   useEffect(() => {
     // Auto-validate on component mount if value exists and validation function provided
     const autoValidate = async () => {
-      if (validateKey && value && !autoValidationComplete) {
+      if (validateKey && value && !autoValidationComplete && !validationLock) {
+        setValidationLock(true);
         setIsValidating(true);
         try {
           const valid = await validateKey(value);
@@ -47,16 +49,18 @@ const ApiKeyInput: React.FC<ApiKeyInputProps> = ({
         } finally {
           setIsValidating(false);
           setAutoValidationComplete(true);
+          setValidationLock(false);
         }
       }
     };
     
     autoValidate();
-  }, [validateKey, value, autoValidationComplete]);
+  }, [validateKey, value, autoValidationComplete, validationLock]);
 
   const handleValidate = async () => {
-    if (!validateKey || !value.trim()) return;
+    if (!validateKey || !value.trim() || validationLock) return;
     
+    setValidationLock(true);
     setIsValidating(true);
     setIsValid(null);
     
@@ -69,6 +73,7 @@ const ApiKeyInput: React.FC<ApiKeyInputProps> = ({
       setIsValid(false);
     } finally {
       setIsValidating(false);
+      setValidationLock(false);
     }
   };
 

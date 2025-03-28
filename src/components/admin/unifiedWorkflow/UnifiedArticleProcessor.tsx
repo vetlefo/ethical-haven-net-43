@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { AlertCircle, FileText, Loader2 } from 'lucide-react';
@@ -38,11 +38,14 @@ const UnifiedArticleProcessor: React.FC<UnifiedArticleProcessorProps> = ({
 
   // Track whether we've already attempted validation to prevent infinite re-validations
   const [validationAttempted, setValidationAttempted] = useState(false);
+  const validationInProgressRef = useRef(false);
 
   // Auto-validate key when component loads if key is present and we haven't attempted validation yet
   useEffect(() => {
-    if (geminiApiKey && validateGeminiApiKey && !isKeyValidated && !validationAttempted) {
+    if (geminiApiKey && validateGeminiApiKey && !isKeyValidated && !validationAttempted && !validationInProgressRef.current) {
       setValidationAttempted(true); // Mark validation as attempted
+      validationInProgressRef.current = true;
+      
       validateGeminiApiKey(geminiApiKey)
         .then(isValid => {
           if (!isValid) {
@@ -55,6 +58,9 @@ const UnifiedArticleProcessor: React.FC<UnifiedArticleProcessorProps> = ({
         })
         .catch(error => {
           console.error("Error validating Gemini API key:", error);
+        })
+        .finally(() => {
+          validationInProgressRef.current = false;
         });
     }
   }, [geminiApiKey, validateGeminiApiKey, isKeyValidated, validationAttempted]);

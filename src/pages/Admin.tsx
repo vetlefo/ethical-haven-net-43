@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Helmet } from 'react-helmet';
 import Navbar from '@/components/Navbar';
@@ -42,6 +43,7 @@ const Admin: React.FC = () => {
   // State to track if the key has been validated
   const [hasAttemptedValidation, setHasAttemptedValidation] = useState(false);
   const validationInProgressRef = useRef(false);
+  const validationDebounceRef = useRef<NodeJS.Timeout | null>(null);
 
   // Save API key to sessionStorage when it changes
   useEffect(() => {
@@ -61,44 +63,64 @@ const Admin: React.FC = () => {
     };
   }, []);
 
-  // Validate the key just once when the component loads
+  // Validate the key just once when the component loads, with debouncing
   useEffect(() => {
     const validateStoredKey = async () => {
       if (!geminiApiKey || hasAttemptedValidation || validationInProgressRef.current) return;
       
-      setHasAttemptedValidation(true);
-      validationInProgressRef.current = true;
-      
-      try {
-        TerminalStore.addLine("Validating Gemini API key...");
-        
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            contents: [{
-              parts: [{ text: "Respond with only the word 'valid'" }]
-            }]
-          }),
-        });
-        
-        if (!response.ok) {
-          TerminalStore.addLine(`Error: Gemini API key validation failed. Please update your key.`);
-        } else {
-          TerminalStore.addLine(`Gemini API key validated successfully.`);
-          TerminalStore.addLine(`System ready for content processing.`);
-        }
-      } catch (error) {
-        console.error("Error validating Gemini API key:", error);
-        TerminalStore.addLine(`Error: ${error.message}`);
-      } finally {
-        validationInProgressRef.current = false;
+      // Clear any existing validation debounce timer
+      if (validationDebounceRef.current) {
+        clearTimeout(validationDebounceRef.current);
       }
+      
+      // Set a debounce timer to prevent rapid consecutive validations
+      validationDebounceRef.current = setTimeout(() => {
+        setHasAttemptedValidation(true);
+        validationInProgressRef.current = true;
+        
+        const validateKey = async () => {
+          try {
+            TerminalStore.addLine("Validating Gemini API key...");
+            
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                contents: [{
+                  parts: [{ text: "Respond with only the word 'valid'" }]
+                }]
+              }),
+            });
+            
+            if (!response.ok) {
+              TerminalStore.addLine(`Error: Gemini API key validation failed. Please update your key.`);
+            } else {
+              TerminalStore.addLine(`Gemini API key validated successfully.`);
+              TerminalStore.addLine(`System ready for content processing.`);
+            }
+          } catch (error) {
+            console.error("Error validating Gemini API key:", error);
+            TerminalStore.addLine(`Error: ${error.message}`);
+          } finally {
+            validationInProgressRef.current = false;
+            validationDebounceRef.current = null;
+          }
+        };
+        
+        validateKey();
+      }, 1000);
     };
     
     validateStoredKey();
+    
+    // Clean up any debounce timer on unmount
+    return () => {
+      if (validationDebounceRef.current) {
+        clearTimeout(validationDebounceRef.current);
+      }
+    };
   }, [geminiApiKey, hasAttemptedValidation]);
 
   const executeCommand = async (command: string) => {
