@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 // CORS headers for browser access
@@ -21,7 +20,7 @@ const ragSchema = {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["id", "text", "metadata"],
+        "required": ["id", "text", "metadata", "embedding"],
         "properties": {
           "id": {
             "type": "string",
@@ -47,6 +46,13 @@ const ragSchema = {
                 "description": "Position in the original document"
               }
             }
+          },
+          "embedding": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "description": "Vector embedding generated from Gemini"
           }
         }
       }
@@ -201,6 +207,108 @@ Focus on extracting:
 - Pricing models
 `;
 
+// Function to generate embeddings using Google's Genai API
+async function generateEmbedding(text, apiKey) {
+  try {
+    const response = await fetch(
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-exp-03-07:embedContent?key=" + apiKey,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          content: {
+            parts: [
+              {
+                text: text,
+              },
+            ],
+          },
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Embedding API error: ${response.status} ${errorText}`);
+    }
+
+    const data = await response.json();
+    return data.embedding.values;
+  } catch (error) {
+    console.error("Error generating embedding:", error);
+    throw error;
+  }
+}
+
+// Function to split text into chunks that are within the token limit
+function splitIntoChunks(text, maxChunkSize = 3000) {
+  // Simple splitting by paragraphs first
+  const paragraphs = text.split("\n\n");
+  const chunks = [];
+  let currentChunk = "";
+
+  for (const paragraph of paragraphs) {
+    // If adding this paragraph would make the chunk too large, start a new chunk
+    if ((currentChunk + paragraph).length > maxChunkSize && currentChunk.length > 0) {
+      chunks.push(currentChunk.trim());
+      currentChunk = paragraph;
+    } else {
+      currentChunk += (currentChunk ? "\n\n" : "") + paragraph;
+    }
+  }
+
+  // Add the last chunk if it's not empty
+  if (currentChunk.trim()) {
+    chunks.push(currentChunk.trim());
+  }
+
+  return chunks;
+}
+
+// Process content for RAG with embeddings
+async function processContentForRag(content, apiKey) {
+  try {
+    // Split the content into manageable chunks
+    const contentChunks = splitIntoChunks(content);
+    const processedChunks = [];
+    
+    // Process each chunk and generate embeddings
+    for (let i = 0; i < contentChunks.length; i++) {
+      const chunk = contentChunks[i];
+      
+      // Generate embedding for this chunk
+      const embedding = await generateEmbedding(chunk, apiKey);
+      
+      processedChunks.push({
+        id: `chunk-${i + 1}`,
+        text: chunk,
+        metadata: {
+          position: i + 1,
+          source: "document",
+          section: `Section ${i + 1}`
+        },
+        embedding: embedding
+      });
+    }
+    
+    // Create the RAG document
+    return {
+      documentId: `doc-${Date.now()}`,
+      chunks: processedChunks,
+      metadata: {
+        title: "Processed Document",
+        date: new Date().toISOString(),
+        summary: "Automatically processed document"
+      }
+    };
+  } catch (error) {
+    console.error("Error processing content:", error);
+    throw error;
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -227,79 +335,82 @@ serve(async (req) => {
     // Determine if this is a compliance report or competitive intelligence report
     const isCompetitiveIntel = requestData.contentType === 'competitive-intel';
     
-    // Configure the request to the Gemini API
-    const geminiApiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro-exp-03-25:generateContent";
+    // Use the Gemini API key from the request
     const geminiApiKey = requestData.geminiApiKey;
     
-    const geminiRequest = {
-      contents: [
-        {
-          role: "user",
-          parts: [
-            { text: isCompetitiveIntel ? competitiveIntelInstruction : systemInstruction },
-            { text: isCompetitiveIntel 
-              ? "Schema for competitive intelligence reports:\n" + JSON.stringify(competitiveIntelSchema, null, 2)
-              : "Schema for RAG document chunks:\n" + JSON.stringify(ragSchema, null, 2) 
-            },
-            { text: isCompetitiveIntel
-              ? "Process the following competitor analysis report into structured JSON format:\n\n" + requestData.content
-              : "Process the following compliance report content into chunks suitable for RAG:\n\n" + requestData.content 
-            }
-          ]
+    let processedContent;
+    
+    if (isCompetitiveIntel) {
+      // Configure the request to the Gemini API for competitive intelligence
+      const geminiApiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro-exp-03-25:generateContent";
+      
+      const geminiRequest = {
+        contents: [
+          {
+            role: "user",
+            parts: [
+              { text: competitiveIntelInstruction },
+              { text: "Schema for competitive intelligence reports:\n" + JSON.stringify(competitiveIntelSchema, null, 2) },
+              { text: "Process the following competitor analysis report into structured JSON format:\n\n" + requestData.content }
+            ]
+          }
+        ],
+        generation_config: {
+          temperature: 0.1,
+          max_output_tokens: 8192
         }
-      ],
-      generation_config: {
-        temperature: 0.1,
-        max_output_tokens: 8192
-      }
-    };
+      };
 
-    console.log(`Sending request to Gemini API for ${isCompetitiveIntel ? 'competitive intelligence' : 'RAG'} processing...`);
-    
-    // Call the Gemini API
-    const geminiResponse = await fetch(`${geminiApiUrl}?key=${geminiApiKey}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(geminiRequest)
-    });
-    
-    if (!geminiResponse.ok) {
-      const errorText = await geminiResponse.text();
-      console.error("Gemini API error:", errorText);
-      throw new Error(`Gemini API error: ${geminiResponse.status} ${errorText}`);
-    }
-    
-    const geminiData = await geminiResponse.json();
-    console.log("Received response from Gemini API");
-    
-    if (!geminiData.candidates || !geminiData.candidates[0] || !geminiData.candidates[0].content) {
-      throw new Error('Invalid response from Gemini API');
-    }
-    
-    // Extract the generated content
-    const generatedText = geminiData.candidates[0].content.parts[0].text;
-    
-    // Find and extract the JSON object from the response
-    // The AI might wrap the JSON in ```json ``` or other formatting
-    let jsonMatch = generatedText.match(/```json\n([\s\S]*?)\n```/) || 
-                   generatedText.match(/```\n([\s\S]*?)\n```/) || 
-                   generatedText.match(/{[\s\S]*}/);
-                   
-    let processedContent = "";
-    
-    if (jsonMatch) {
-      processedContent = jsonMatch[0].startsWith('```') ? jsonMatch[1] : jsonMatch[0];
+      console.log(`Sending request to Gemini API for competitive intelligence processing...`);
+      
+      // Call the Gemini API
+      const geminiResponse = await fetch(`${geminiApiUrl}?key=${geminiApiKey}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(geminiRequest)
+      });
+      
+      if (!geminiResponse.ok) {
+        const errorText = await geminiResponse.text();
+        console.error("Gemini API error:", errorText);
+        throw new Error(`Gemini API error: ${geminiResponse.status} ${errorText}`);
+      }
+      
+      const geminiData = await geminiResponse.json();
+      console.log("Received response from Gemini API");
+      
+      if (!geminiData.candidates || !geminiData.candidates[0] || !geminiData.candidates[0].content) {
+        throw new Error('Invalid response from Gemini API');
+      }
+      
+      // Extract the generated content
+      const generatedText = geminiData.candidates[0].content.parts[0].text;
+      
+      // Find and extract the JSON object from the response
+      // The AI might wrap the JSON in ```json ``` or other formatting
+      let jsonMatch = generatedText.match(/```json\n([\s\S]*?)\n```/) || 
+                    generatedText.match(/```\n([\s\S]*?)\n```/) || 
+                    generatedText.match(/{[\s\S]*}/);
+                    
+      if (jsonMatch) {
+        processedContent = jsonMatch[0].startsWith('```') ? jsonMatch[1] : jsonMatch[0];
+      } else {
+        processedContent = generatedText; // If no pattern matched, use the entire text
+      }
     } else {
-      processedContent = generatedText; // If no pattern matched, use the entire text
+      // For RAG processing, use our direct embedding approach
+      console.log("Processing content for RAG embeddings with Gemini...");
+      const ragDocument = await processContentForRag(requestData.content, geminiApiKey);
+      processedContent = JSON.stringify(ragDocument, null, 2);
     }
     
     // Verify the JSON is valid
     try {
       JSON.parse(processedContent);
     } catch (error) {
-      console.error("Invalid JSON in Gemini response:", error);
+      console.error("Invalid JSON in processed content:", error);
       throw new Error('Generated content is not valid JSON');
     }
     

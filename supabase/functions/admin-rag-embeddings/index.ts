@@ -56,19 +56,25 @@ serve(async (req) => {
 
     console.log(`Processing RAG document ID ${ragData.documentId} with ${ragData.chunks.length} chunks`);
     
+    // Verify that the chunks have embeddings
+    for (const chunk of ragData.chunks) {
+      if (!chunk.embedding || !Array.isArray(chunk.embedding)) {
+        console.warn(`Chunk ${chunk.id} is missing embeddings or embeddings is not an array`);
+      }
+    }
+    
     // TODO: In the future, you would store this in a vector database
     // For now, we'll just log it and return success
     
     // Mock storage process - in a real implementation you would:
-    // 1. Generate embeddings for each chunk using OpenAI or similar
-    // 2. Store the chunks and embeddings in a vector database
-    // 3. Index the document metadata
+    // 1. Store the chunks and embeddings in a vector database
+    // 2. Index the document metadata
 
     // Return success
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: `Successfully processed document ${ragData.documentId} with ${ragData.chunks.length} chunks`,
+        message: `Successfully processed document ${ragData.documentId} with ${ragData.chunks.length} chunks with Gemini embeddings`,
         documentId: ragData.documentId
       }),
       { 
