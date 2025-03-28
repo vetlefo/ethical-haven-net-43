@@ -10,6 +10,7 @@ interface ApiKeyInputProps {
   placeholder?: string;
   hideKey?: boolean;
   adminKey?: boolean;
+  description?: string;
 }
 
 const ApiKeyInput: React.FC<ApiKeyInputProps> = ({
@@ -18,7 +19,8 @@ const ApiKeyInput: React.FC<ApiKeyInputProps> = ({
   label = 'API Key',
   placeholder = 'Enter API key',
   hideKey = true,
-  adminKey = false
+  adminKey = false,
+  description
 }) => {
   const [showKey, setShowKey] = React.useState(false);
 
@@ -55,6 +57,9 @@ const ApiKeyInput: React.FC<ApiKeyInputProps> = ({
           </button>
         )}
       </div>
+      {description && (
+        <p className="text-xs text-cyber-light/70">{description}</p>
+      )}
     </div>
   );
 };
