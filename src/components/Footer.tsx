@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Shield, Github, Linkedin, Twitter, Mail, Lock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -10,6 +9,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { toast } from '@/hooks/use-toast';
+import { loginWithCredentials } from '@/utils/authUtils';
 import { supabase } from '@/integrations/supabase/client';
 
 const formSchema = z.object({
@@ -50,13 +50,10 @@ const Footer = () => {
     try {
       setIsLoading(true);
       
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: values.email,
-        password: values.password,
-      });
+      const { success, error } = await loginWithCredentials(values.email, values.password);
       
-      if (error) {
-        throw error;
+      if (!success) {
+        throw new Error(error || "Login failed. Please check your credentials.");
       }
       
       toast({
@@ -72,7 +69,7 @@ const Footer = () => {
       console.error('Login error:', error);
       toast({
         title: "Login failed",
-        description: error.message || "Invalid credentials",
+        description: error instanceof Error ? error.message : "Invalid credentials. Email: vetle@reprint.ink",
         variant: "destructive",
       });
     } finally {
@@ -175,6 +172,9 @@ const Footer = () => {
             </DialogTitle>
             <DialogDescription className="text-cyber-light/70">
               Enter your credentials to access the admin dashboard.
+              <div className="mt-2 p-2 bg-cyber-light/5 rounded text-xs border border-cyber-blue/20">
+                <strong>Admin Email:</strong> vetle@reprint.ink
+              </div>
             </DialogDescription>
           </DialogHeader>
           
@@ -188,7 +188,7 @@ const Footer = () => {
                     <FormLabel className="text-cyber-light">Email</FormLabel>
                     <FormControl>
                       <Input 
-                        placeholder="admin@example.com" 
+                        placeholder="vetle@reprint.ink" 
                         className="bg-cyber-slate border-cyber-light/20 text-cyber-light" 
                         {...field} 
                       />
