@@ -13,8 +13,9 @@ import { Card } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
-const Admin: React.FC = () => {
-  const [terminalLines, setTerminalLines] = useState<string[]>([
+// Create a singleton for terminal lines to be accessed across components
+export const TerminalStore = {
+  lines: [
     "# Compliance Intelligence Admin Console",
     "# Use the tabs above to manage compliance reports",
     "# AI Processing ready for report transformation",
@@ -22,10 +23,15 @@ const Admin: React.FC = () => {
     "Initializing report processing engine...",
     "Schema validation module loaded.",
     "JSON formatter ready.",
-    "Gemini API connection established.",
     "Vector embedding module initialized.",
     "Ready to process compliance reports."
-  ]);
+  ],
+  addLine: (line: string) => {},
+  addLines: (newLines: string[]) => {}
+};
+
+const Admin: React.FC = () => {
+  const [terminalLines, setTerminalLines] = useState<string[]>(TerminalStore.lines);
   
   // Store the Gemini API key at the top level so it can be shared with child components
   const [geminiApiKey, setGeminiApiKey] = useState(() => {
@@ -44,6 +50,17 @@ const Admin: React.FC = () => {
     }
   }, [geminiApiKey]);
 
+  // Update the TerminalStore methods to modify the terminal lines
+  useEffect(() => {
+    TerminalStore.addLine = (line: string) => {
+      setTerminalLines(prev => [...prev, line]);
+    };
+    
+    TerminalStore.addLines = (newLines: string[]) => {
+      setTerminalLines(prev => [...prev, ...newLines]);
+    };
+  }, []);
+
   // Validate the key when the component loads
   useEffect(() => {
     const validateStoredKey = async () => {
@@ -52,6 +69,8 @@ const Admin: React.FC = () => {
       setHasAttemptedValidation(true);
       
       try {
+        TerminalStore.addLine("Validating Gemini API key...");
+        
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`, {
           method: 'POST',
           headers: {
@@ -65,12 +84,14 @@ const Admin: React.FC = () => {
         });
         
         if (!response.ok) {
-          setTerminalLines(prev => [...prev, `Error: Gemini API key validation failed. Please update your key.`]);
+          TerminalStore.addLine(`Error: Gemini API key validation failed. Please update your key.`);
         } else {
-          setTerminalLines(prev => [...prev, `Gemini API key validated successfully.`]);
+          TerminalStore.addLine(`Gemini API key validated successfully.`);
+          TerminalStore.addLine(`System ready for content processing.`);
         }
       } catch (error) {
         console.error("Error validating Gemini API key:", error);
+        TerminalStore.addLine(`Error: ${error.message}`);
       }
     };
     
@@ -78,10 +99,11 @@ const Admin: React.FC = () => {
   }, [geminiApiKey, hasAttemptedValidation]);
 
   const executeCommand = async (command: string) => {
-    setTerminalLines(prev => [...prev, `$ ${command}`, `Processing command: ${command}...`]);
+    TerminalStore.addLine(`$ ${command}`);
+    TerminalStore.addLine(`Processing command: ${command}...`);
     
     if (!geminiApiKey) {
-      setTerminalLines(prev => [...prev, `Error: Gemini API key is required. Please set it in the tabs above.`]);
+      TerminalStore.addLine(`Error: Gemini API key is required. Please set it in the tabs above.`);
       toast({
         title: "API Key Required",
         description: "Please set your Gemini API key in the tabs above.",
@@ -91,6 +113,8 @@ const Admin: React.FC = () => {
     }
     
     try {
+      TerminalStore.addLine(`Connecting to Supabase function...`);
+      
       const { data, error } = await supabase.functions.invoke('generate-report', {
         body: {
           geminiApiKey,
@@ -99,13 +123,14 @@ const Admin: React.FC = () => {
       });
       
       if (error) {
-        setTerminalLines(prev => [...prev, `Error: ${error.message}`]);
+        TerminalStore.addLine(`Error: ${error.message}`);
       } else if (data) {
-        setTerminalLines(prev => [...prev, `Command executed successfully`, `Result: ${JSON.stringify(data, null, 2)}`]);
+        TerminalStore.addLine(`Command executed successfully`);
+        TerminalStore.addLine(`Result: ${JSON.stringify(data, null, 2)}`);
       }
     } catch (err: any) {
       console.error("Error executing command:", err);
-      setTerminalLines(prev => [...prev, `Error: ${err.message || "Failed to execute command"}`]);
+      TerminalStore.addLine(`Error: ${err.message || "Failed to execute command"}`);
     }
   };
 

@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { TerminalStore } from '@/pages/Admin';
 
 export const useRagEmbeddings = () => {
   const [apiKey, setApiKey] = useState('compliance-admin-key-2023');
@@ -20,6 +21,7 @@ export const useRagEmbeddings = () => {
         description: 'Please enter your Gemini API key for this session',
         variant: 'destructive',
       });
+      TerminalStore.addLine(`Error: Gemini API key is required for RAG processing`);
       return;
     }
 
@@ -29,11 +31,13 @@ export const useRagEmbeddings = () => {
         description: 'Please enter the raw report content to process',
         variant: 'destructive',
       });
+      TerminalStore.addLine(`Error: No content provided for RAG processing`);
       return;
     }
 
     try {
       setIsProcessing(true);
+      TerminalStore.addLine(`Starting ${contentType} content processing for RAG...`);
       
       // Use the Supabase client to invoke the edge function directly
       const { data, error } = await supabase.functions.invoke('process-for-rag', {
@@ -46,19 +50,24 @@ export const useRagEmbeddings = () => {
       
       if (error) {
         console.error('Error from Supabase function:', error);
+        TerminalStore.addLine(`Error from Supabase function: ${error.message}`);
         throw new Error(error.message || 'Failed to process content');
       }
       
       if (!data) {
+        TerminalStore.addLine(`Error: No data returned from the RAG processing function`);
         throw new Error('No data returned from the function');
       }
       
       if (!data.processedContent) {
+        TerminalStore.addLine(`Error: Response is missing processedContent field`);
         throw new Error('Response is missing processedContent field');
       }
       
       setProcessedContent(data.processedContent);
       setIsValid(true);
+      
+      TerminalStore.addLine(`RAG processing completed successfully`);
       
       toast({
         title: 'Content Processed',
@@ -69,6 +78,7 @@ export const useRagEmbeddings = () => {
       
     } catch (error) {
       console.error('Error processing content:', error);
+      TerminalStore.addLine(`Error processing content: ${error.message}`);
       toast({
         title: 'Processing Error',
         description: error.message || 'Failed to process content',
@@ -101,6 +111,7 @@ export const useRagEmbeddings = () => {
         description: 'Please enter your admin API key',
         variant: 'destructive',
       });
+      TerminalStore.addLine(`Error: Admin API key is required for submission`);
       return;
     }
 
@@ -110,6 +121,7 @@ export const useRagEmbeddings = () => {
         description: 'Please process the raw content first',
         variant: 'destructive',
       });
+      TerminalStore.addLine(`Error: No processed content to submit`);
       return;
     }
 
@@ -119,17 +131,20 @@ export const useRagEmbeddings = () => {
         description: 'The processed content contains invalid JSON. Please fix it before submitting.',
         variant: 'destructive',
       });
+      TerminalStore.addLine(`Error: Invalid JSON in processed content`);
       return;
     }
 
     try {
       setIsSubmitting(true);
+      TerminalStore.addLine(`Submitting processed ${contentType} content to database...`);
       
       // Parse the JSON input
       const contentData = JSON.parse(processedContent);
       
       // Determine the endpoint and invoke the appropriate function
       if (contentType === 'competitive-intel') {
+        TerminalStore.addLine(`Using admin-competitive-intel function...`);
         await supabase.functions.invoke('admin-competitive-intel', {
           body: contentData,
           headers: {
@@ -138,6 +153,7 @@ export const useRagEmbeddings = () => {
         });
       } else {
         // For RAG embeddings
+        TerminalStore.addLine(`Using admin-rag-embeddings function...`);
         await supabase.functions.invoke('admin-rag-embeddings', {
           body: contentData,
           headers: {
@@ -145,6 +161,8 @@ export const useRagEmbeddings = () => {
           }
         });
       }
+      
+      TerminalStore.addLine(`Content successfully saved to database`);
       
       toast({
         title: 'Success!',
@@ -160,6 +178,7 @@ export const useRagEmbeddings = () => {
       
     } catch (error) {
       console.error('Error submitting content:', error);
+      TerminalStore.addLine(`Error submitting content: ${error.message}`);
       toast({
         title: 'Error',
         description: error.message || 'Failed to submit content',

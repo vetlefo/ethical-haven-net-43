@@ -1,35 +1,27 @@
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { TerminalStore } from '@/pages/Admin';
 
-export type StepStatus = 'waiting' | 'processing' | 'completed' | 'error';
+export type ProcessStatus = 'idle' | 'processing' | 'completed' | 'error';
 
-export const useUnifiedWorkflow = (initialGeminiApiKey: string = '') => {
+export const useUnifiedWorkflow = (initialGeminiApiKey: string) => {
   const [apiKey, setApiKey] = useState('compliance-admin-key-2023');
-  const [geminiApiKey, setGeminiApiKey] = useState(initialGeminiApiKey || '');
+  const [geminiApiKey, setGeminiApiKey] = useState(initialGeminiApiKey);
   const [rawContent, setRawContent] = useState('');
   const [contentType, setContentType] = useState('compliance');
-  const [isKeyValidated, setIsKeyValidated] = useState(false);
-  
-  const [isProcessing, setIsProcessing] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [processingStep, setProcessingStep] = useState(0);
-  const [processStatus, setProcessStatus] = useState<StepStatus[]>([
-    'waiting', 'waiting', 'waiting'
-  ]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [processStatus, setProcessStatus] = useState<ProcessStatus[]>(['idle', 'idle', 'idle']);
+  const [isKeyValidated, setIsKeyValidated] = useState(false);
 
-  const updateStepStatus = (step: number, status: StepStatus) => {
-    setProcessStatus(prev => {
-      const newStatus = [...prev];
-      newStatus[step] = status;
-      return newStatus;
-    });
-  };
-
-  // Function to validate the Gemini API key
-  const validateGeminiApiKey = useCallback(async (key: string): Promise<boolean> => {
+  // Validate the Gemini API key
+  const validateGeminiApiKey = async (key: string): Promise<boolean> => {
     try {
+      TerminalStore.addLine(`Validating Gemini API key...`);
+      
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`, {
         method: 'POST',
         headers: {
@@ -43,148 +35,39 @@ export const useUnifiedWorkflow = (initialGeminiApiKey: string = '') => {
       });
       
       if (!response.ok) {
+        TerminalStore.addLine(`Gemini API key validation failed: ${response.status} ${response.statusText}`);
         setIsKeyValidated(false);
         return false;
       }
       
       const data = await response.json();
       const isValid = !!data.candidates;
-      setIsKeyValidated(isValid);
+      
+      if (isValid) {
+        TerminalStore.addLine(`Gemini API key validated successfully`);
+        setIsKeyValidated(true);
+      } else {
+        TerminalStore.addLine(`Gemini API key validation failed: Invalid response format`);
+        setIsKeyValidated(false);
+      }
+      
       return isValid;
     } catch (error) {
       console.error('Error validating Gemini API key:', error);
+      TerminalStore.addLine(`Error validating Gemini API key: ${error.message}`);
       setIsKeyValidated(false);
       return false;
     }
-  }, []);
-
-  // Validate key when it changes
-  useEffect(() => {
-    if (geminiApiKey) {
-      validateGeminiApiKey(geminiApiKey);
-    } else {
-      setIsKeyValidated(false);
-    }
-  }, [geminiApiKey, validateGeminiApiKey]);
-
-  // Step 1: Transform the raw content into a structured report
-  const transformContent = async (): Promise<string> => {
-    setProcessingStep(0);
-    updateStepStatus(0, 'processing');
-    
-    try {
-      // Use the Supabase edge function to transform the content
-      const { data, error } = await supabase.functions.invoke('generate-report', {
-        body: {
-          geminiApiKey,
-          prompt: rawContent
-        }
-      });
-      
-      if (error) {
-        console.error('Error from Supabase function:', error);
-        throw new Error(error.message || 'Failed to transform content');
-      }
-      
-      if (!data || data.success === false) {
-        throw new Error(data?.error || 'Failed to transform content');
-      }
-      
-      if (!data.reportJson) {
-        throw new Error('No report data returned from the function');
-      }
-      
-      updateStepStatus(0, 'completed');
-      return data.reportJson;
-    } catch (error: any) {
-      console.error('Error transforming content:', error);
-      updateStepStatus(0, 'error');
-      throw error;
-    }
   };
 
-  // Step 2: Process the transformed content for RAG
-  const processForRag = async (transformedContent: string): Promise<string> => {
-    setProcessingStep(1);
-    updateStepStatus(1, 'processing');
-    
-    try {
-      const { data, error } = await supabase.functions.invoke('process-for-rag', {
-        body: {
-          geminiApiKey,
-          content: transformedContent,
-          contentType
-        }
-      });
-      
-      if (error) {
-        console.error('Error from Supabase function:', error);
-        throw new Error(error.message || 'Failed to process content for RAG');
-      }
-      
-      if (!data || !data.processedContent) {
-        throw new Error('No data returned from the function or missing processedContent');
-      }
-      
-      updateStepStatus(1, 'completed');
-      return data.processedContent;
-    } catch (error: any) {
-      console.error('Error processing for RAG:', error);
-      updateStepStatus(1, 'error');
-      throw error;
-    }
-  };
-
-  // Step 3: Store the processed content in the database
-  const storeInDatabase = async (processedContent: string): Promise<void> => {
-    setProcessingStep(2);
-    updateStepStatus(2, 'processing');
-    
-    try {
-      // Parse the JSON input
-      const contentData = JSON.parse(processedContent);
-      
-      if (contentType === 'competitive-intel') {
-        const { error } = await supabase.functions.invoke('admin-competitive-intel', {
-          body: contentData,
-          headers: {
-            'Admin-Key': apiKey,
-          }
-        });
-        
-        if (error) {
-          throw new Error(error.message || 'Failed to store competitive intelligence data');
-        }
-      } else {
-        // For RAG embeddings
-        const { error } = await supabase.functions.invoke('admin-rag-embeddings', {
-          body: contentData,
-          headers: {
-            'Admin-Key': apiKey,
-          }
-        });
-        
-        if (error) {
-          throw new Error(error.message || 'Failed to store RAG embeddings');
-        }
-      }
-      
-      updateStepStatus(2, 'completed');
-    } catch (error: any) {
-      console.error('Error storing in database:', error);
-      updateStepStatus(2, 'error');
-      throw error;
-    }
-  };
-
-  // Main process function that chains all steps together
   const handleProcess = async () => {
-    if (!geminiApiKey.trim() || !isKeyValidated) {
+    if (!geminiApiKey.trim()) {
       toast({
         title: 'Gemini API Key Required',
-        description: 'Please enter a valid Gemini API key for this session',
+        description: 'Please enter your Gemini API key for this session',
         variant: 'destructive',
       });
+      TerminalStore.addLine(`Error: Gemini API key is required`);
       return;
     }
 
@@ -194,6 +77,7 @@ export const useUnifiedWorkflow = (initialGeminiApiKey: string = '') => {
         description: 'Please enter your admin API key',
         variant: 'destructive',
       });
+      TerminalStore.addLine(`Error: Admin API key is required`);
       return;
     }
 
@@ -203,38 +87,114 @@ export const useUnifiedWorkflow = (initialGeminiApiKey: string = '') => {
         description: 'Please enter the raw content to process',
         variant: 'destructive',
       });
+      TerminalStore.addLine(`Error: No content provided for processing`);
       return;
     }
 
     try {
       setIsProcessing(true);
-      setCurrentStep(0);
-      
-      // Reset all statuses to waiting
-      setProcessStatus(['waiting', 'waiting', 'waiting']);
-      
-      // Step 1: Transform
-      const transformedContent = await transformContent();
+      setProcessStatus(['processing', 'idle', 'idle']);
       setCurrentStep(1);
+      setProcessingStep(0);
+      
+      // Step 1: Transform content
+      TerminalStore.addLine(`Starting unified workflow process for ${contentType} content...`);
+      TerminalStore.addLine(`Step 1: Transforming raw content...`);
+      
+      const { data: transformData, error: transformError } = await supabase.functions.invoke('generate-report', {
+        body: {
+          geminiApiKey,
+          prompt: rawContent,
+          contentType
+        }
+      });
+      
+      if (transformError) {
+        throw new Error(`Transformation error: ${transformError.message}`);
+      }
+      
+      if (!transformData || transformData.success === false) {
+        throw new Error(transformData?.error || 'Failed to transform content');
+      }
+      
+      const reportJson = transformData.reportJson;
+      TerminalStore.addLine(`Content transformation completed successfully`);
       
       // Step 2: Process for RAG
-      const processedContent = await processForRag(transformedContent);
+      setProcessStatus(['completed', 'processing', 'idle']);
+      setProcessingStep(1);
       setCurrentStep(2);
       
+      TerminalStore.addLine(`Step 2: Processing for RAG embeddings...`);
+      
+      const { data: ragData, error: ragError } = await supabase.functions.invoke('process-for-rag', {
+        body: {
+          geminiApiKey,
+          content: reportJson,
+          contentType
+        }
+      });
+      
+      if (ragError) {
+        throw new Error(`RAG processing error: ${ragError.message}`);
+      }
+      
+      if (!ragData || !ragData.processedContent) {
+        throw new Error('Failed to process content for RAG');
+      }
+      
+      const processedContent = ragData.processedContent;
+      TerminalStore.addLine(`RAG processing completed successfully`);
+      
       // Step 3: Store in database
-      await storeInDatabase(processedContent);
+      setProcessStatus(['completed', 'completed', 'processing']);
+      setProcessingStep(2);
+      setCurrentStep(3);
+      
+      TerminalStore.addLine(`Step 3: Storing content in database...`);
+      
+      const contentData = JSON.parse(processedContent);
+      let storeFunction = 'admin-rag-embeddings';
+      
+      if (contentType === 'competitive-intel') {
+        storeFunction = 'admin-competitive-intel';
+      }
+      
+      const { error: storeError } = await supabase.functions.invoke(storeFunction, {
+        body: contentData,
+        headers: {
+          'Admin-Key': apiKey,
+        }
+      });
+      
+      if (storeError) {
+        throw new Error(`Storage error: ${storeError.message}`);
+      }
+      
+      setProcessStatus(['completed', 'completed', 'completed']);
+      TerminalStore.addLine(`Content stored successfully in the database`);
+      TerminalStore.addLine(`Unified workflow process completed successfully`);
       
       toast({
         title: 'Success!',
-        description: 'Content has been processed and stored successfully',
-        variant: 'default',
+        description: `${contentType === 'competitive-intel' ? 'Competitive intelligence' : 'Compliance report'} processed and stored successfully`,
       });
       
-    } catch (error: any) {
+      // Reset form after successful submission
+      setRawContent('');
+      
+    } catch (error) {
       console.error('Error in unified workflow:', error);
+      
+      const currentStatusCopy = [...processStatus];
+      currentStatusCopy[processingStep] = 'error';
+      setProcessStatus(currentStatusCopy);
+      
+      TerminalStore.addLine(`Error in unified workflow: ${error.message}`);
+      
       toast({
-        title: 'Error',
-        description: error.message || 'An error occurred during processing',
+        title: 'Process Error',
+        description: error.message || 'Failed to complete the workflow',
         variant: 'destructive',
       });
     } finally {
@@ -252,8 +212,8 @@ export const useUnifiedWorkflow = (initialGeminiApiKey: string = '') => {
     contentType,
     setContentType,
     currentStep,
-    isProcessing,
     processingStep,
+    isProcessing,
     processStatus,
     handleProcess,
     validateGeminiApiKey,
