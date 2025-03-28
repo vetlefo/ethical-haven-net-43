@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from '@/hooks/use-toast';
-import { Loader2, Sparkles } from 'lucide-react';
+import { Loader2, Sparkles, FileCheck, FileWarning } from 'lucide-react';
 
 const AdminAIReportGenerator: React.FC = () => {
   const [apiKey, setApiKey] = useState('');
@@ -16,6 +16,8 @@ const AdminAIReportGenerator: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [prompt, setPrompt] = useState('');
   const [generatedReport, setGeneratedReport] = useState('');
+  const [activeTab, setActiveTab] = useState('prompt');
+  const [isValid, setIsValid] = useState(false);
 
   const handleGenerate = async () => {
     if (!geminiApiKey.trim()) {
@@ -57,6 +59,8 @@ const AdminAIReportGenerator: React.FC = () => {
       }
       
       setGeneratedReport(result.reportJson);
+      setIsValid(true);
+      setActiveTab('result');
       
       toast({
         title: 'Report Generated',
@@ -72,6 +76,17 @@ const AdminAIReportGenerator: React.FC = () => {
       });
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleReportChange = (newValue: string) => {
+    setGeneratedReport(newValue);
+    // Check if the report is valid JSON
+    try {
+      JSON.parse(newValue);
+      setIsValid(true);
+    } catch (e) {
+      setIsValid(false);
     }
   };
 
@@ -91,6 +106,15 @@ const AdminAIReportGenerator: React.FC = () => {
       toast({
         title: 'No Report to Submit',
         description: 'Please generate a report first',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!isValid) {
+      toast({
+        title: 'Invalid JSON',
+        description: 'The report contains invalid JSON. Please fix it before submitting.',
         variant: 'destructive',
       });
       return;
@@ -123,6 +147,10 @@ const AdminAIReportGenerator: React.FC = () => {
         description: 'AI-generated report has been added to the database',
       });
       
+      // Clear generated report after successful submission
+      setGeneratedReport('');
+      setActiveTab('prompt');
+      
     } catch (error) {
       console.error('Error submitting report:', error);
       toast({
@@ -136,80 +164,98 @@ const AdminAIReportGenerator: React.FC = () => {
   };
 
   return (
-    <Card className="w-full max-w-4xl mx-auto bg-background/80 backdrop-blur-sm border-cyber-blue/30">
+    <Card className="w-full mx-auto bg-background/80 backdrop-blur-sm border-cyber-blue/30">
       <CardHeader>
         <CardTitle className="text-2xl text-cyber-light">AI-Assisted Report Generation</CardTitle>
         <CardDescription className="text-cyber-light/70">
-          Use AI to generate compliance reports based on your prompts
+          Process raw reports into structured JSON format using Gemini AI
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="space-y-6">
-          <div>
-            <label htmlFor="geminiApiKey" className="block text-sm font-medium text-cyber-light mb-1">
-              Gemini API Key (Session Only)
-            </label>
-            <Input
-              id="geminiApiKey"
-              type="password"
-              value={geminiApiKey}
-              onChange={(e) => setGeminiApiKey(e.target.value)}
-              placeholder="Enter your Gemini API key for this session only"
-              className="w-full"
-            />
-            <p className="text-xs text-cyber-light/70 mt-1">
-              This key is only stored in your browser for this session and is not saved to our database.
-            </p>
-          </div>
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid w-full grid-cols-2 mb-4">
+            <TabsTrigger value="prompt">Generate Report</TabsTrigger>
+            <TabsTrigger value="result" disabled={!generatedReport}>Result</TabsTrigger>
+          </TabsList>
           
-          <div>
-            <label htmlFor="prompt" className="block text-sm font-medium text-cyber-light mb-1">
-              Prompt for AI Report Generation
-            </label>
-            <Textarea
-              id="prompt"
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder="Describe the compliance report you want to generate (e.g. 'Create a detailed report about GDPR compliance challenges for healthcare providers in Germany')"
-              className="w-full min-h-[150px]"
-            />
-          </div>
-          
-          <Button 
-            type="button" 
-            onClick={handleGenerate}
-            className="w-full" 
-            disabled={isGenerating}
-          >
-            {isGenerating ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Generating...
-              </>
-            ) : (
-              <>
-                <Sparkles className="mr-2 h-4 w-4" />
-                Generate Report with AI
-              </>
-            )}
-          </Button>
-          
-          <Separator />
-          
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <TabsContent value="prompt" className="space-y-6">
             <div>
-              <div className="flex justify-between mb-1">
+              <label htmlFor="geminiApiKey" className="block text-sm font-medium text-cyber-light mb-1">
+                Gemini API Key (Session Only)
+              </label>
+              <Input
+                id="geminiApiKey"
+                type="password"
+                value={geminiApiKey}
+                onChange={(e) => setGeminiApiKey(e.target.value)}
+                placeholder="Enter your Gemini API key for this session only"
+                className="w-full"
+              />
+              <p className="text-xs text-cyber-light/70 mt-1">
+                This key is only stored in your browser for this session and is not saved to our database.
+              </p>
+            </div>
+            
+            <div>
+              <label htmlFor="prompt" className="block text-sm font-medium text-cyber-light mb-1">
+                Report Transformation Prompt
+              </label>
+              <Textarea
+                id="prompt"
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                placeholder="Describe the report you need or paste raw content to be transformed (e.g. 'Generate a detailed GDPR compliance report for healthcare providers in Germany' or 'Convert this plain text report into structured JSON...')"
+                className="w-full min-h-[200px]"
+              />
+            </div>
+            
+            <Button 
+              type="button" 
+              onClick={handleGenerate}
+              className="w-full" 
+              disabled={isGenerating}
+            >
+              {isGenerating ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Generate Structured Report
+                </>
+              )}
+            </Button>
+          </TabsContent>
+          
+          <TabsContent value="result" className="space-y-6">
+            <div>
+              <div className="flex justify-between items-center mb-1">
                 <label htmlFor="generatedReport" className="block text-sm font-medium text-cyber-light">
                   Generated Report JSON
                 </label>
+                <div className="flex items-center">
+                  {isValid ? (
+                    <FileCheck className="h-4 w-4 text-green-500 mr-1" />
+                  ) : (
+                    <FileWarning className="h-4 w-4 text-yellow-500 mr-1" />
+                  )}
+                  <span className={`text-xs ${isValid ? 'text-green-500' : 'text-yellow-500'}`}>
+                    {isValid ? 'Valid JSON' : 'Invalid JSON'}
+                  </span>
+                </div>
               </div>
               <Textarea
                 id="generatedReport"
                 value={generatedReport}
-                onChange={(e) => setGeneratedReport(e.target.value)}
+                onChange={(e) => handleReportChange(e.target.value)}
                 placeholder="AI-generated report will appear here"
                 className="w-full min-h-[300px] font-mono text-sm"
               />
+              <p className="text-xs text-cyber-light/70 mt-1">
+                You can edit the generated JSON if needed before submitting.
+              </p>
             </div>
             
             <div>
@@ -226,15 +272,34 @@ const AdminAIReportGenerator: React.FC = () => {
               />
             </div>
             
-            <Button 
-              type="submit" 
-              className="w-full" 
-              disabled={isSubmitting || !generatedReport}
-            >
-              {isSubmitting ? 'Submitting...' : 'Submit Generated Report'}
-            </Button>
-          </form>
-        </div>
+            <div className="flex space-x-4">
+              <Button 
+                type="button" 
+                variant="outline"
+                className="w-1/2" 
+                onClick={() => setActiveTab('prompt')}
+              >
+                Back to Prompt
+              </Button>
+              
+              <Button 
+                type="button" 
+                className="w-1/2" 
+                disabled={isSubmitting || !isValid}
+                onClick={handleSubmit}
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Submitting...
+                  </>
+                ) : (
+                  'Submit Report'
+                )}
+              </Button>
+            </div>
+          </TabsContent>
+        </Tabs>
       </CardContent>
     </Card>
   );
