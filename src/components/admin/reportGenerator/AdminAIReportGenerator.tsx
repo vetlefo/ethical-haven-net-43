@@ -26,7 +26,7 @@ const AdminAIReportGenerator: React.FC = () => {
   } = useReportGeneration({ setActiveTab });
 
   return (
-    <Card className="w-full mx-auto bg-cyber-dark border-cyber-blue/30">
+    <Card className="w-full mx-auto bg-black/90 border-cyber-blue/30">
       <CardHeader>
         <CardTitle className="text-2xl text-cyber-light">Report Transformation</CardTitle>
         <CardDescription className="text-cyber-light/70">
@@ -36,8 +36,8 @@ const AdminAIReportGenerator: React.FC = () => {
       <CardContent>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-2 mb-4 bg-cyber-slate">
-            <TabsTrigger value="prompt" className="data-[state=active]:bg-cyber-blue">Transform Report</TabsTrigger>
-            <TabsTrigger value="result" className="data-[state=active]:bg-cyber-blue" disabled={!generatedReport}>Result</TabsTrigger>
+            <TabsTrigger value="prompt" className="data-[state=active]:bg-cyber-blue text-cyber-light">Transform Report</TabsTrigger>
+            <TabsTrigger value="result" className="data-[state=active]:bg-cyber-blue text-cyber-light" disabled={!generatedReport}>Result</TabsTrigger>
           </TabsList>
           
           <TabsContent value="prompt">

@@ -1,7 +1,6 @@
-
 import { useState } from 'react';
 import { toast } from '@/hooks/use-toast';
-import { apiRoutes } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 
 export const useRagEmbeddings = () => {
   const [apiKey, setApiKey] = useState('');
@@ -35,42 +34,29 @@ export const useRagEmbeddings = () => {
     try {
       setIsProcessing(true);
       
-      const response = await fetch(apiRoutes.processForRag, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      // Use the Supabase client to invoke the edge function directly
+      const { data, error } = await supabase.functions.invoke('process-for-rag', {
+        body: {
           geminiApiKey,
           content: rawContent,
           contentType
-        }),
+        }
       });
       
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || `Server responded with status: ${response.status}`);
+      if (error) {
+        console.error('Error from Supabase function:', error);
+        throw new Error(error.message || 'Failed to process content');
       }
       
-      // Safely handle JSON parsing to avoid "Unexpected end of JSON input" error
-      const text = await response.text();
-      if (!text) {
-        throw new Error('Server returned an empty response');
+      if (!data) {
+        throw new Error('No data returned from the function');
       }
       
-      let result;
-      try {
-        result = JSON.parse(text);
-      } catch (parseError) {
-        console.error('Error parsing JSON response:', parseError, 'Response text:', text);
-        throw new Error(`Invalid JSON response: ${parseError.message}`);
-      }
-      
-      if (!result.processedContent) {
+      if (!data.processedContent) {
         throw new Error('Response is missing processedContent field');
       }
       
-      setProcessedContent(result.processedContent);
+      setProcessedContent(data.processedContent);
       setIsValid(true);
       
       toast({
