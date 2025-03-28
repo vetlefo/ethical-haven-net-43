@@ -209,21 +209,15 @@ serve(async (req) => {
     // Parse the request body
     const requestData = await req.json();
     
-    if (!requestData.geminiApiKey) {
-      throw new Error('Missing Gemini API key');
-    }
-
-    if (!requestData.prompt) {
-      throw new Error('Missing prompt or raw content for report generation');
-    }
-
-    // Validate the Gemini API key format
-    if (!requestData.geminiApiKey.trim() || requestData.geminiApiKey === 'YOUR_GEMINI_API_KEY') {
-      console.error("Invalid Gemini API key provided");
+    // Get API key from environment 
+    const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
+    
+    if (!geminiApiKey) {
+      console.error("No Gemini API key found in environment");
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: 'Invalid Gemini API key. Please provide a valid API key.',
+          error: 'Gemini API key not configured in Supabase environment.',
           reportJson: fallbackReportJson // Provide fallback data for testing
         }),
         { 
@@ -233,9 +227,18 @@ serve(async (req) => {
       );
     }
 
+    if (!requestData.prompt && !requestData.content) {
+      throw new Error('Missing prompt or content for report generation');
+    }
+
+    // Determine which field to use (content or prompt)
+    const inputContent = requestData.content || requestData.prompt;
+    if (!inputContent.trim()) {
+      throw new Error('Empty prompt or content provided');
+    }
+
     // Configure the request to the Gemini API
     const geminiApiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro-exp-03-25:generateContent";
-    const geminiApiKey = requestData.geminiApiKey;
     
     const geminiRequest = {
       contents: [
@@ -244,7 +247,7 @@ serve(async (req) => {
           parts: [
             { text: systemInstruction },
             { text: "Schema for the report:\n" + JSON.stringify(reportSchema, null, 2) },
-            { text: "Transform the following content into a properly structured compliance report in the required JSON format:\n\n" + requestData.prompt }
+            { text: "Transform the following content into a properly structured compliance report in the required JSON format:\n\n" + inputContent }
           ]
         }
       ],
@@ -275,7 +278,7 @@ serve(async (req) => {
           return new Response(
             JSON.stringify({ 
               success: false, 
-              error: 'The Gemini API key provided is not valid. Please check your API key and try again.',
+              error: 'The Gemini API key configured in Supabase environment is not valid.',
               reportJson: fallbackReportJson // Provide fallback for testing
             }),
             { 
