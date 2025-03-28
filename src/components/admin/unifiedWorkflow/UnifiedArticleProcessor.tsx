@@ -32,12 +32,13 @@ const UnifiedArticleProcessor: React.FC<UnifiedArticleProcessorProps> = ({
     processingStep,
     processStatus,
     handleProcess,
-    validateGeminiApiKey
+    validateGeminiApiKey,
+    isKeyValidated
   } = useUnifiedWorkflow(geminiApiKey);
 
   // Auto-validate key when component loads and key is present
   useEffect(() => {
-    if (geminiApiKey && validateGeminiApiKey) {
+    if (geminiApiKey && validateGeminiApiKey && !isKeyValidated) {
       validateGeminiApiKey(geminiApiKey)
         .then(isValid => {
           if (!isValid) {
@@ -52,7 +53,7 @@ const UnifiedArticleProcessor: React.FC<UnifiedArticleProcessorProps> = ({
           console.error("Error validating Gemini API key:", error);
         });
     }
-  }, [geminiApiKey, validateGeminiApiKey]);
+  }, [geminiApiKey, validateGeminiApiKey, isKeyValidated]);
 
   return (
     <Card className="w-full mx-auto bg-black/90 border-cyber-blue/30">

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -24,6 +24,35 @@ const ApiKeyInput: React.FC<ApiKeyInputProps> = ({
   const [isValidating, setIsValidating] = useState(false);
   const [isValid, setIsValid] = useState<boolean | null>(null);
   const [showKey, setShowKey] = useState(false);
+  const [autoValidationComplete, setAutoValidationComplete] = useState(false);
+
+  useEffect(() => {
+    // When value changes, reset validation status
+    if (validateKey && value) {
+      setIsValid(null);
+    }
+  }, [value, validateKey]);
+
+  useEffect(() => {
+    // Auto-validate on component mount if value exists and validation function provided
+    const autoValidate = async () => {
+      if (validateKey && value && !autoValidationComplete) {
+        setIsValidating(true);
+        try {
+          const valid = await validateKey(value);
+          setIsValid(valid);
+        } catch (error) {
+          console.error('Auto validation error:', error);
+          setIsValid(false);
+        } finally {
+          setIsValidating(false);
+          setAutoValidationComplete(true);
+        }
+      }
+    };
+    
+    autoValidate();
+  }, [validateKey, value, autoValidationComplete]);
 
   const handleValidate = async () => {
     if (!validateKey || !value.trim()) return;
@@ -34,6 +63,7 @@ const ApiKeyInput: React.FC<ApiKeyInputProps> = ({
     try {
       const valid = await validateKey(value.trim());
       setIsValid(valid);
+      setAutoValidationComplete(true);
     } catch (error) {
       console.error('Validation error:', error);
       setIsValid(false);
@@ -54,7 +84,9 @@ const ApiKeyInput: React.FC<ApiKeyInputProps> = ({
             value={value}
             onChange={(e) => onChange(e.target.value)}
             placeholder={placeholder}
-            className="w-full pr-10 bg-cyber-slate border-cyber-blue/30 text-cyber-light"
+            className={`w-full pr-10 bg-cyber-slate border-cyber-blue/30 text-cyber-light ${
+              isValid === true ? "border-green-500" : isValid === false ? "border-red-500" : ""
+            }`}
           />
           <button
             type="button"
@@ -72,7 +104,13 @@ const ApiKeyInput: React.FC<ApiKeyInputProps> = ({
             disabled={isValidating || !value.trim()}
             size="sm"
             variant="outline"
-            className="shrink-0 border-cyber-blue/30 hover:bg-cyber-blue/20"
+            className={`shrink-0 ${
+              isValid === true 
+                ? "border-green-500 hover:bg-green-500/20" 
+                : isValid === false 
+                ? "border-red-500 hover:bg-red-500/20" 
+                : "border-cyber-blue/30 hover:bg-cyber-blue/20"
+            }`}
           >
             {isValidating ? (
               <Loader2 className="h-4 w-4 animate-spin" />

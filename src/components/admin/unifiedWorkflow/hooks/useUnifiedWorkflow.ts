@@ -1,5 +1,5 @@
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -10,6 +10,7 @@ export const useUnifiedWorkflow = (initialGeminiApiKey: string = '') => {
   const [geminiApiKey, setGeminiApiKey] = useState(initialGeminiApiKey || '');
   const [rawContent, setRawContent] = useState('');
   const [contentType, setContentType] = useState('compliance');
+  const [isKeyValidated, setIsKeyValidated] = useState(false);
   
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
@@ -42,16 +43,29 @@ export const useUnifiedWorkflow = (initialGeminiApiKey: string = '') => {
       });
       
       if (!response.ok) {
+        setIsKeyValidated(false);
         return false;
       }
       
       const data = await response.json();
-      return !!data.candidates;
+      const isValid = !!data.candidates;
+      setIsKeyValidated(isValid);
+      return isValid;
     } catch (error) {
       console.error('Error validating Gemini API key:', error);
+      setIsKeyValidated(false);
       return false;
     }
   }, []);
+
+  // Validate key when it changes
+  useEffect(() => {
+    if (geminiApiKey) {
+      validateGeminiApiKey(geminiApiKey);
+    } else {
+      setIsKeyValidated(false);
+    }
+  }, [geminiApiKey, validateGeminiApiKey]);
 
   // Step 1: Transform the raw content into a structured report
   const transformContent = async (): Promise<string> => {
@@ -59,12 +73,6 @@ export const useUnifiedWorkflow = (initialGeminiApiKey: string = '') => {
     updateStepStatus(0, 'processing');
     
     try {
-      // First validate the key before proceeding
-      const isKeyValid = await validateGeminiApiKey(geminiApiKey);
-      if (!isKeyValid) {
-        throw new Error('Invalid Gemini API key. Please provide a valid key.');
-      }
-      
       // Use the Supabase edge function to transform the content
       const { data, error } = await supabase.functions.invoke('generate-report', {
         body: {
@@ -171,10 +179,10 @@ export const useUnifiedWorkflow = (initialGeminiApiKey: string = '') => {
 
   // Main process function that chains all steps together
   const handleProcess = async () => {
-    if (!geminiApiKey.trim()) {
+    if (!geminiApiKey.trim() || !isKeyValidated) {
       toast({
         title: 'Gemini API Key Required',
-        description: 'Please enter your Gemini API key for this session',
+        description: 'Please enter a valid Gemini API key for this session',
         variant: 'destructive',
       });
       return;
@@ -199,17 +207,6 @@ export const useUnifiedWorkflow = (initialGeminiApiKey: string = '') => {
     }
 
     try {
-      // Validate the Gemini API key before processing
-      const isKeyValid = await validateGeminiApiKey(geminiApiKey);
-      if (!isKeyValid) {
-        toast({
-          title: 'Invalid Gemini API Key',
-          description: 'The provided API key is invalid. Please check and try again.',
-          variant: 'destructive',
-        });
-        return;
-      }
-
       setIsProcessing(true);
       setCurrentStep(0);
       
@@ -259,6 +256,7 @@ export const useUnifiedWorkflow = (initialGeminiApiKey: string = '') => {
     processingStep,
     processStatus,
     handleProcess,
-    validateGeminiApiKey
+    validateGeminiApiKey,
+    isKeyValidated
   };
 };

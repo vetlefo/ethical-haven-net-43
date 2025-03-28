@@ -1,5 +1,5 @@
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -18,6 +18,7 @@ export const useReportGeneration = ({ setActiveTab }: UseReportGenerationProps) 
   const [prompt, setPrompt] = useState('');
   const [generatedReport, setGeneratedReport] = useState('');
   const [isValid, setIsValid] = useState(false);
+  const [isKeyValidated, setIsKeyValidated] = useState(false);
 
   const validateGeminiApiKey = useCallback(async (key: string): Promise<boolean> => {
     try {
@@ -34,22 +35,35 @@ export const useReportGeneration = ({ setActiveTab }: UseReportGenerationProps) 
       });
       
       if (!response.ok) {
+        setIsKeyValidated(false);
         return false;
       }
       
       const data = await response.json();
-      return !!data.candidates;
+      const isValid = !!data.candidates;
+      setIsKeyValidated(isValid);
+      return isValid;
     } catch (error) {
       console.error('Error validating Gemini API key:', error);
+      setIsKeyValidated(false);
       return false;
     }
   }, []);
 
+  // Validate the API key when it changes
+  useEffect(() => {
+    if (geminiApiKey) {
+      validateGeminiApiKey(geminiApiKey);
+    } else {
+      setIsKeyValidated(false);
+    }
+  }, [geminiApiKey, validateGeminiApiKey]);
+
   const handleGenerate = async () => {
-    if (!geminiApiKey.trim()) {
+    if (!geminiApiKey.trim() || !isKeyValidated) {
       toast({
         title: 'Gemini API Key Required',
-        description: 'Please enter your Gemini API key for this session',
+        description: 'Please enter a valid Gemini API key for this session',
         variant: 'destructive',
       });
       return;
@@ -65,17 +79,6 @@ export const useReportGeneration = ({ setActiveTab }: UseReportGenerationProps) 
     }
 
     try {
-      // Validate the API key first
-      const isKeyValid = await validateGeminiApiKey(geminiApiKey);
-      if (!isKeyValid) {
-        toast({
-          title: 'Invalid Gemini API Key',
-          description: 'The provided API key is invalid. Please check and try again.',
-          variant: 'destructive',
-        });
-        return;
-      }
-
       setIsGenerating(true);
       
       // Save valid key to sessionStorage
@@ -213,6 +216,7 @@ export const useReportGeneration = ({ setActiveTab }: UseReportGenerationProps) 
     isGenerating,
     isSubmitting,
     isValid,
+    isKeyValidated,
     handleGenerate,
     handleReportChange,
     handleSubmit,

@@ -34,12 +34,48 @@ const Admin: React.FC = () => {
     return storedKey || '';
   });
 
+  // State to track if the key has been validated
+  const [hasAttemptedValidation, setHasAttemptedValidation] = useState(false);
+
   // Save API key to sessionStorage when it changes
   useEffect(() => {
     if (geminiApiKey) {
       sessionStorage.setItem('geminiApiKey', geminiApiKey);
     }
   }, [geminiApiKey]);
+
+  // Validate the key when the component loads
+  useEffect(() => {
+    const validateStoredKey = async () => {
+      if (!geminiApiKey || hasAttemptedValidation) return;
+      
+      setHasAttemptedValidation(true);
+      
+      try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            contents: [{
+              parts: [{ text: "Respond with only the word 'valid'" }]
+            }]
+          }),
+        });
+        
+        if (!response.ok) {
+          setTerminalLines(prev => [...prev, `Error: Gemini API key validation failed. Please update your key.`]);
+        } else {
+          setTerminalLines(prev => [...prev, `Gemini API key validated successfully.`]);
+        }
+      } catch (error) {
+        console.error("Error validating Gemini API key:", error);
+      }
+    };
+    
+    validateStoredKey();
+  }, [geminiApiKey, hasAttemptedValidation]);
 
   const executeCommand = async (command: string) => {
     setTerminalLines(prev => [...prev, `$ ${command}`, `Processing command: ${command}...`]);
