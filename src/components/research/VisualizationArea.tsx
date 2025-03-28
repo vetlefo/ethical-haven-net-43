@@ -32,6 +32,9 @@ const VisualizationArea: React.FC<VisualizationAreaProps> = ({
         </div>
       )}
       
+      {/* Tooltip container */}
+      <div id="tooltip" className="absolute z-20 p-3 bg-cyber-dark/95 border border-cyber-blue/40 rounded shadow-lg text-cyber-light text-sm opacity-0 pointer-events-none transition-opacity duration-200 max-w-xs"></div>
+      
       <div 
         id={visualizationContainerId} 
         ref={visualizationRef}

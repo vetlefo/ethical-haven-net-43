@@ -2,10 +2,13 @@
 import React, { useState, useEffect } from 'react';
 import { Menu, X, FileText, ChevronRight, BarChart3, BookOpen, Presentation, Target, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Link, useLocation } from 'react-router-dom';
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const location = useLocation();
+  const isHomePage = location.pathname === '/';
 
   useEffect(() => {
     const handleScroll = () => {
@@ -30,6 +33,12 @@ const Navbar = () => {
   };
 
   const scrollToSection = (id: string) => {
+    if (!isHomePage) {
+      // Navigate to homepage first
+      window.location.href = `/#${id}`;
+      return;
+    }
+
     const element = document.getElementById(id);
     if (element) {
       element.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -59,10 +68,12 @@ const Navbar = () => {
         <div className="flex items-center justify-between">
           {/* Logo */}
           <div className="flex items-center space-x-2">
-            <FileText className="h-8 w-8 text-cyber-blue animate-pulse-slow" />
-            <span className="text-xl font-semibold">
-              Report<span className="text-cyber-blue">Case</span>
-            </span>
+            <Link to="/" className="flex items-center space-x-2">
+              <FileText className="h-8 w-8 text-cyber-blue animate-pulse-slow" />
+              <span className="text-xl font-semibold">
+                Report<span className="text-cyber-blue">Case</span>
+              </span>
+            </Link>
           </div>
 
           {/* Desktop Navigation */}
@@ -78,6 +89,16 @@ const Navbar = () => {
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-cyber-blue transition-all duration-300 group-hover:w-full"></span>
               </button>
             ))}
+            
+            <Link 
+              to="/reports" 
+              className="text-cyber-light/80 hover:text-cyber-blue transition-colors relative group flex items-center space-x-1.5"
+            >
+              <FileText className="h-4 w-4 text-cyber-blue" />
+              <span>Full Reports</span>
+              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-cyber-blue transition-all duration-300 group-hover:w-full"></span>
+            </Link>
+            
             <button 
               className="cyber-button flex items-center"
               onClick={() => scrollToSection('contact')}
@@ -116,6 +137,16 @@ const Navbar = () => {
               <span>{link.name}</span>
             </button>
           ))}
+          
+          <Link
+            to="/reports"
+            className="text-xl text-cyber-light hover:text-cyber-blue transition-colors flex items-center space-x-3"
+            onClick={() => setIsMobileMenuOpen(false)}
+          >
+            <FileText className="h-5 w-5 text-cyber-blue" />
+            <span>Full Reports</span>
+          </Link>
+          
           <button
             className="cyber-button w-full mt-8 text-center flex items-center justify-center"
             onClick={() => scrollToSection('contact')}
