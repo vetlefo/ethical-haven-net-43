@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Helmet } from 'react-helmet';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -42,6 +41,7 @@ const Admin: React.FC = () => {
 
   // State to track if the key has been validated
   const [hasAttemptedValidation, setHasAttemptedValidation] = useState(false);
+  const validationInProgressRef = useRef(false);
 
   // Save API key to sessionStorage when it changes
   useEffect(() => {
@@ -61,12 +61,13 @@ const Admin: React.FC = () => {
     };
   }, []);
 
-  // Validate the key when the component loads
+  // Validate the key just once when the component loads
   useEffect(() => {
     const validateStoredKey = async () => {
-      if (!geminiApiKey || hasAttemptedValidation) return;
+      if (!geminiApiKey || hasAttemptedValidation || validationInProgressRef.current) return;
       
       setHasAttemptedValidation(true);
+      validationInProgressRef.current = true;
       
       try {
         TerminalStore.addLine("Validating Gemini API key...");
@@ -92,6 +93,8 @@ const Admin: React.FC = () => {
       } catch (error) {
         console.error("Error validating Gemini API key:", error);
         TerminalStore.addLine(`Error: ${error.message}`);
+      } finally {
+        validationInProgressRef.current = false;
       }
     };
     

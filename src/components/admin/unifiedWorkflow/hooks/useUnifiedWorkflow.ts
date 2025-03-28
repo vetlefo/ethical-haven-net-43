@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { TerminalStore } from '@/pages/Admin';
@@ -18,10 +18,17 @@ export const useUnifiedWorkflow = (initialGeminiApiKey: string) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [processStatus, setProcessStatus] = useState<ProcessStatus[]>(['waiting', 'waiting', 'waiting']);
   const [isKeyValidated, setIsKeyValidated] = useState(false);
+  const [validationInProgress, setValidationInProgress] = useState(false);
 
   // Validate the Gemini API key
   const validateGeminiApiKey = async (key: string): Promise<boolean> => {
+    // Prevent multiple concurrent validations
+    if (validationInProgress) {
+      return isKeyValidated;
+    }
+    
     try {
+      setValidationInProgress(true);
       TerminalStore.addLine(`Validating Gemini API key...`);
       
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`, {
@@ -59,8 +66,17 @@ export const useUnifiedWorkflow = (initialGeminiApiKey: string) => {
       TerminalStore.addLine(`Error validating Gemini API key: ${error.message}`);
       setIsKeyValidated(false);
       return false;
+    } finally {
+      setValidationInProgress(false);
     }
   };
+
+  // Effect to validate key once when it's provided initially
+  useEffect(() => {
+    if (geminiApiKey && !isKeyValidated && !validationInProgress) {
+      validateGeminiApiKey(geminiApiKey);
+    }
+  }, [geminiApiKey]);
 
   const handleProcess = async () => {
     if (!geminiApiKey.trim()) {

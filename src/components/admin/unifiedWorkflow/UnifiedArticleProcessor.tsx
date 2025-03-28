@@ -36,9 +36,13 @@ const UnifiedArticleProcessor: React.FC<UnifiedArticleProcessorProps> = ({
     isKeyValidated
   } = useUnifiedWorkflow(geminiApiKey);
 
-  // Auto-validate key when component loads and key is present
+  // Track whether we've already attempted validation to prevent infinite re-validations
+  const [validationAttempted, setValidationAttempted] = useState(false);
+
+  // Auto-validate key when component loads if key is present and we haven't attempted validation yet
   useEffect(() => {
-    if (geminiApiKey && validateGeminiApiKey && !isKeyValidated) {
+    if (geminiApiKey && validateGeminiApiKey && !isKeyValidated && !validationAttempted) {
+      setValidationAttempted(true); // Mark validation as attempted
       validateGeminiApiKey(geminiApiKey)
         .then(isValid => {
           if (!isValid) {
@@ -53,7 +57,7 @@ const UnifiedArticleProcessor: React.FC<UnifiedArticleProcessorProps> = ({
           console.error("Error validating Gemini API key:", error);
         });
     }
-  }, [geminiApiKey, validateGeminiApiKey, isKeyValidated]);
+  }, [geminiApiKey, validateGeminiApiKey, isKeyValidated, validationAttempted]);
 
   return (
     <Card className="w-full mx-auto bg-black/90 border-cyber-blue/30">
@@ -73,7 +77,10 @@ const UnifiedArticleProcessor: React.FC<UnifiedArticleProcessorProps> = ({
         
         <ApiKeyInput
           value={geminiApiKey}
-          onChange={setGeminiApiKey}
+          onChange={(value) => {
+            setGeminiApiKey(value);
+            setValidationAttempted(false); // Reset validation flag when key changes
+          }}
           label="Gemini API Key (Session Only)"
           placeholder="Enter your Gemini API key for this session only"
           description="This key is only stored in your browser for this session and is not saved to our database."
