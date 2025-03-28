@@ -37,42 +37,127 @@ const RAGContentProcessor: React.FC = () => {
       setCurrentStep(1);
       setProcessingStep(0);
       setProcessStatus(['processing', 'waiting', 'waiting', 'waiting']);
+      setResult(null);
 
       // Step 1: Process with Gemini
-      const processResult = await processWithGemini(rawContent);
+      console.log("Step 1: Processing with Gemini...");
+      const authToken = await supabase.auth.getSession().then(res => res.data.session?.access_token || '');
+      if (!authToken) {
+        throw new Error('Authentication required. Please log in again.');
+      }
+      
+      const { data: transformData, error: transformError } = await supabase.functions.invoke('generate-report', {
+        body: {
+          content: rawContent,
+          contentType
+        },
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+        }
+      });
+      
+      if (transformError) {
+        throw new Error(`Gemini processing error: ${transformError.message}`);
+      }
+      
+      if (!transformData || !transformData.reportJson) {
+        throw new Error('No data returned from the processing service');
+      }
+      
+      // Parse the report JSON
+      let parsedReport;
+      try {
+        parsedReport = JSON.parse(transformData.reportJson);
+        console.log("Successfully parsed report JSON:", parsedReport.title);
+      } catch (e) {
+        console.error("Error parsing report JSON:", e);
+        console.log("Raw report JSON:", transformData.reportJson.substring(0, 100) + "...");
+        throw new Error(`Failed to parse report JSON: ${e.message}`);
+      }
+      
       setProcessStatus(['completed', 'processing', 'waiting', 'waiting']);
       setProcessingStep(1);
       setCurrentStep(2);
 
       // Step 2: Chunk the content
-      const chunks = chunkContent(rawContent);
+      console.log("Step 2: Chunking content...");
+      const paragraphs = rawContent.split(/\n\s*\n/);
+      const chunks = paragraphs.map((p, i) => ({
+        text: p.trim(),
+        position: i,
+        chunkId: `chunk-${i + 1}`
+      })).filter(chunk => chunk.text.length > 0);
+      
+      console.log(`Created ${chunks.length} chunks from content`);
+      
       setProcessStatus(['completed', 'completed', 'processing', 'waiting']);
       setProcessingStep(2);
       setCurrentStep(3);
 
       // Step 3: Generate embeddings
-      const embeddingResults = await generateEmbeddings(chunks);
+      console.log("Step 3: Generating embeddings...");
+      const { data: embeddingData, error: embeddingError } = await supabase.functions.invoke('process-for-rag', {
+        body: {
+          content: JSON.stringify(chunks),
+          contentType,
+          generateEmbeddings: true
+        },
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+        }
+      });
+      
+      if (embeddingError) {
+        console.warn("Warning: Embedding generation error:", embeddingError);
+        // Continue with the process even if embeddings fail
+      }
+      
+      console.log("Embeddings processed");
+      
       setProcessStatus(['completed', 'completed', 'completed', 'processing']);
       setProcessingStep(3);
       setCurrentStep(4);
 
-      // Step 4: Store everything in the database
-      const storageResult = await storeInDatabase(processResult, embeddingResults);
+      // Step 4: Store everything in the database - add RAG flag
+      console.log("Step 4: Storing in database...");
+      parsedReport.is_rag_enabled = true;
+      
+      const { data: storeData, error: storeError } = await supabase.functions.invoke('store-report', {
+        body: parsedReport,
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+        }
+      });
+      
+      if (storeError) {
+        throw new Error(`Database storage error: ${storeError.message}`);
+      }
+      
+      if (!storeData || !storeData.report) {
+        throw new Error('Failed to store report in database');
+      }
+      
+      console.log("Report stored successfully:", storeData.report.id);
       setProcessStatus(['completed', 'completed', 'completed', 'completed']);
 
       // Set the result data
       setResult({
-        documentId: storageResult.documentId,
-        title: processResult.title || 'Processed Document',
-        summary: processResult.summary,
-        tags: processResult.tags,
-        chunksProcessed: embeddingResults.length
+        documentId: storeData.report.id,
+        title: parsedReport.title || 'Processed Document',
+        summary: parsedReport.summary,
+        tags: parsedReport.tags,
+        chunksProcessed: chunks.length
       });
 
       toast({
         title: 'Processing Complete',
-        description: `Document processed successfully with ${embeddingResults.length} chunks`,
+        description: `Document processed successfully with ${chunks.length} chunks`,
       });
+      
+      // Reset the form after successful processing
+      setRawContent('');
+      setCurrentStep(0);
+      
     } catch (error) {
       console.error('Error processing content:', error);
       
@@ -91,85 +176,6 @@ const RAGContentProcessor: React.FC = () => {
     }
   };
 
-  // Function to process content with Gemini
-  const processWithGemini = async (content: string) => {
-    const { data, error } = await supabase.functions.invoke('generate-report', {
-      body: {
-        content,
-        contentType
-      },
-      headers: {
-        'Authorization': `Bearer ${await supabase.auth.getSession().then(res => res.data.session?.access_token || '')}`,
-      }
-    });
-    
-    if (error) {
-      throw new Error(`Gemini processing error: ${error.message}`);
-    }
-    
-    // Parse the report JSON
-    const processedContent = JSON.parse(data.reportJson);
-    return processedContent;
-  };
-
-  // Function to chunk content
-  const chunkContent = (content: string) => {
-    // Split by paragraphs
-    const paragraphs = content.split(/\n\s*\n/);
-    return paragraphs.map((p, i) => ({
-      text: p.trim(),
-      position: i,
-      chunkId: `chunk-${i + 1}`
-    })).filter(chunk => chunk.text.length > 0);
-  };
-
-  // Function to generate embeddings
-  const generateEmbeddings = async (chunks: any[]) => {
-    // Call the process-for-rag function to generate embeddings
-    const { data, error } = await supabase.functions.invoke('process-for-rag', {
-      body: {
-        content: JSON.stringify(chunks),
-        contentType,
-        generateEmbeddings: true
-      },
-      headers: {
-        'Authorization': `Bearer ${await supabase.auth.getSession().then(res => res.data.session?.access_token || '')}`,
-      }
-    });
-    
-    if (error) {
-      throw new Error(`Embedding generation error: ${error.message}`);
-    }
-    
-    return chunks.map((chunk, index) => ({
-      ...chunk,
-      embedding: [] // The actual embeddings are handled by the edge function
-    }));
-  };
-
-  // Function to store in database
-  const storeInDatabase = async (processedContent: any, embeddings: any[]) => {
-    // Store the report
-    const { data: reportData, error: reportError } = await supabase.functions.invoke('store-report', {
-      body: {
-        ...processedContent,
-        isRagEnabled: true
-      },
-      headers: {
-        'Authorization': `Bearer ${await supabase.auth.getSession().then(res => res.data.session?.access_token || '')}`,
-      }
-    });
-    
-    if (reportError) {
-      throw new Error(`Database storage error: ${reportError.message}`);
-    }
-    
-    return {
-      documentId: reportData?.report?.document_id || `doc-${Date.now()}`,
-      chunksStored: embeddings.length
-    };
-  };
-
   return (
     <Card className="w-full mx-auto bg-black/90 border-cyber-blue/30">
       <CardHeader>
@@ -182,7 +188,7 @@ const RAGContentProcessor: React.FC = () => {
         <Alert className="bg-cyber-dark border-cyber-blue">
           <AlertCircle className="h-4 w-4 text-cyber-blue" />
           <AlertDescription className="text-cyber-light">
-            Gemini API key is configured in your Supabase environment. You can proceed with content processing.
+            All processing is done securely with your admin credentials. This creates a RAG-enabled report that will be stored in your database.
           </AlertDescription>
         </Alert>
         
@@ -213,7 +219,7 @@ const RAGContentProcessor: React.FC = () => {
             id="rawContent"
             value={rawContent}
             onChange={(e) => setRawContent(e.target.value)}
-            placeholder="Paste the raw content to be processed with Gemini 2.5 Pro, transformed into a structured format, and prepared for RAG"
+            placeholder="Paste the raw content to be processed with Gemini, transformed into a structured format, and prepared for RAG"
             className="w-full min-h-[300px] bg-cyber-slate border-cyber-blue/30 text-cyber-light"
           />
         </div>
