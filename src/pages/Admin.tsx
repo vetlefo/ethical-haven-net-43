@@ -1,186 +1,172 @@
-
-import React, { useState } from 'react';
-import { Helmet } from 'react-helmet';
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
-import AdminReportSubmitter from '@/components/AdminReportSubmitter';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Loader2 } from 'lucide-react';
+import { Terminal } from '@/components/Terminal';
 import AdminAIReportGenerator from '@/components/admin/reportGenerator/AdminAIReportGenerator';
 import AdminRagEmbeddings from '@/components/admin/ragEmbeddings/AdminRagEmbeddings';
 import UnifiedArticleProcessor from '@/components/admin/unifiedWorkflow/UnifiedArticleProcessor';
-import Terminal from '@/components/Terminal';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card } from '@/components/ui/card';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
-// Create a singleton for terminal lines to be accessed across components
-export const TerminalStore = {
-  lines: [
-    "# Compliance Intelligence Admin Console",
-    "# Use the tabs above to manage compliance reports",
-    "# AI Processing ready for report transformation",
-    "",
-    "Initializing report processing engine...",
-    "Schema validation module loaded.",
-    "JSON formatter ready.",
-    "Vector embedding module initialized.",
-    "Gemini API key loaded from Supabase environment.",
-    "Ready to process compliance reports."
-  ],
-  addLine: (line: string) => {},
-  addLines: (newLines: string[]) => {}
-};
+// Store for the terminal
+export class TerminalStore {
+  static lines: string[] = [];
+  static listeners: Function[] = [];
 
-const Admin: React.FC = () => {
-  const [terminalLines, setTerminalLines] = useState<string[]>(TerminalStore.lines);
+  static addLine(line: string) {
+    this.lines.push(`${new Date().toISOString().split('T')[1].slice(0, -1)}: ${line}`);
+    if (this.lines.length > 100) this.lines.shift();
+    this.notifyListeners();
+  }
 
-  // Update the TerminalStore methods to modify the terminal lines
-  React.useEffect(() => {
-    TerminalStore.addLine = (line: string) => {
-      setTerminalLines(prev => [...prev, line]);
+  static subscribe(callback: Function) {
+    this.listeners.push(callback);
+    return () => {
+      this.listeners = this.listeners.filter(listener => listener !== callback);
     };
-    
-    TerminalStore.addLines = (newLines: string[]) => {
-      setTerminalLines(prev => [...prev, ...newLines]);
-    };
-  }, []);
+  }
 
-  const executeCommand = async (command: string) => {
-    TerminalStore.addLine(`$ ${command}`);
-    
-    // Handle help command
-    if (command.toLowerCase() === 'help') {
-      TerminalStore.addLine("Available commands:");
-      TerminalStore.addLine("  help - Show this help message");
-      TerminalStore.addLine("  clear - Clear the terminal");
-      TerminalStore.addLine("  status - Check system status");
-      TerminalStore.addLine("  version - Show system version");
-      TerminalStore.addLine("  tables - List database tables");
-      return;
+  static notifyListeners() {
+    for (const listener of this.listeners) {
+      listener(this.lines);
     }
-    
-    // Handle clear command
-    if (command.toLowerCase() === 'clear') {
-      setTerminalLines([
-        "# Compliance Intelligence Admin Console",
-        "# Terminal cleared",
-        "# Type 'help' for available commands"
-      ]);
-      return;
-    }
-    
-    // Handle status command
-    if (command.toLowerCase() === 'status') {
-      TerminalStore.addLine("System Status:");
-      TerminalStore.addLine("- Database: Connected");
-      TerminalStore.addLine("- API: Connected");
-      TerminalStore.addLine("- Gemini API: Configured in Supabase environment");
-      TerminalStore.addLine("- Processing Engine: Ready");
-      return;
-    }
-    
-    // Handle version command
-    if (command.toLowerCase() === 'version') {
-      TerminalStore.addLine("Compliance Intelligence System v1.0.2");
-      TerminalStore.addLine("- Report Processing: v1.1.0");
-      TerminalStore.addLine("- RAG Embedding: v1.0.5");
-      TerminalStore.addLine("- Competitive Analysis: v1.0.1");
-      return;
-    }
-    
-    // Handle tables command
-    if (command.toLowerCase() === 'tables') {
-      TerminalStore.addLine("Database Tables:");
-      TerminalStore.addLine("- compliance_reports: Structured compliance reports");
-      TerminalStore.addLine("- rag_documents: Document metadata for RAG system");
-      TerminalStore.addLine("- rag_chunks: Text chunks with embeddings for search");
-      TerminalStore.addLine("- competitors: Competitive intelligence data");
-      return;
-    }
-    
-    TerminalStore.addLine(`Processing command: ${command}...`);
-    
-    try {
-      TerminalStore.addLine(`Connecting to Supabase function...`);
-      
-      const { data, error } = await supabase.functions.invoke('generate-report', {
-        body: {
-          prompt: command
+  }
+}
+
+const Admin = () => {
+  const [loading, setLoading] = useState(true);
+  const [authenticated, setAuthenticated] = useState(false);
+  const navigate = useNavigate();
+
+  // Authentication check
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) throw error;
+        
+        if (!session) {
+          toast({
+            title: "Authentication required",
+            description: "You must be logged in to access the admin panel",
+            variant: "destructive",
+          });
+          navigate('/');
+          return;
         }
-      });
-      
-      if (error) {
-        TerminalStore.addLine(`Error: ${error.message}`);
-      } else if (data) {
-        TerminalStore.addLine(`Command executed successfully`);
-        TerminalStore.addLine(`Result: ${JSON.stringify(data, null, 2)}`);
+        
+        // Successfully authenticated
+        setAuthenticated(true);
+        TerminalStore.addLine(`Admin session authenticated: ${session.user.email}`);
+      } catch (error) {
+        console.error('Authentication error:', error);
+        toast({
+          title: "Authentication error",
+          description: error.message || "Please try logging in again",
+          variant: "destructive",
+        });
+        navigate('/');
+      } finally {
+        setLoading(false);
       }
-    } catch (err: any) {
-      console.error("Error executing command:", err);
-      TerminalStore.addLine(`Error: ${err.message || "Failed to execute command"}`);
+    };
+    
+    checkAuth();
+    
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT') {
+        setAuthenticated(false);
+        navigate('/');
+      }
+    });
+    
+    return () => subscription.unsubscribe();
+  }, [navigate]);
+
+  // Handle logout
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      toast({
+        title: "Logged out",
+        description: "You have been successfully logged out",
+      });
+      navigate('/');
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast({
+        title: "Logout failed",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   };
 
-  return (
-    <>
-      <Helmet>
-        <title>Admin Dashboard | Compliance Intelligence</title>
-      </Helmet>
-      <div className="min-h-screen flex flex-col bg-cyber-dark text-cyber-light">
-        <Navbar />
-        <main className="flex-grow container mx-auto px-4 py-8">
-          <h1 className="text-3xl font-bold mb-8 text-center text-cyber-light">Admin Dashboard</h1>
-          
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
-              <Tabs defaultValue="unified" className="w-full mx-auto">
-                <TabsList className="grid w-full grid-cols-4 mb-6">
-                  <TabsTrigger value="unified">One-Step Process</TabsTrigger>
-                  <TabsTrigger value="manual">Manual Submission</TabsTrigger>
-                  <TabsTrigger value="ai">Report Transformation</TabsTrigger>
-                  <TabsTrigger value="rag">RAG Embeddings</TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="unified">
-                  <UnifiedArticleProcessor />
-                </TabsContent>
-                
-                <TabsContent value="manual">
-                  <AdminReportSubmitter />
-                </TabsContent>
-                
-                <TabsContent value="ai">
-                  <AdminAIReportGenerator />
-                </TabsContent>
-                
-                <TabsContent value="rag">
-                  <AdminRagEmbeddings />
-                </TabsContent>
-              </Tabs>
-            </div>
-            
-            <div className="lg:col-span-1">
-              <Card className="bg-cyber-dark border-cyber-blue/30 h-full">
-                <Terminal 
-                  lines={terminalLines} 
-                  typingSpeed={10}
-                  startDelay={500}
-                  interactive={true}
-                  className="h-full"
-                  colors={{
-                    prompt: "#00ffaa",
-                    command: "#f8fafc",
-                    comment: "#8B5CF6"
-                  }}
-                  onCommand={executeCommand}
-                />
-              </Card>
-            </div>
-          </div>
-        </main>
-        <Footer />
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-cyber-dark flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-12 h-12 text-cyber-blue animate-spin" />
+          <div className="text-cyber-light text-xl">Verifying credentials...</div>
+        </div>
       </div>
-    </>
+    );
+  }
+
+  if (!authenticated) {
+    return null; // Will redirect in useEffect
+  }
+
+  
+  return (
+    <div className="min-h-screen bg-cyber-dark flex flex-col">
+      <header className="bg-cyber-slate border-b border-cyber-blue/30 py-4 px-6">
+        <div className="container mx-auto flex justify-between items-center">
+          <h1 className="text-cyber-light text-xl font-medium">ReportCase Admin Dashboard</h1>
+          <button 
+            onClick={handleLogout}
+            className="px-4 py-2 border border-cyber-light/20 rounded text-cyber-light/80 hover:bg-cyber-light/10 hover:text-cyber-light transition-colors"
+          >
+            Logout
+          </button>
+        </div>
+      </header>
+      
+      <main className="flex-1 container mx-auto p-6">
+        <Tabs defaultValue="reportGenerator" className="space-y-8">
+          <TabsList className="grid grid-cols-3 w-full bg-cyber-slate/50 border border-cyber-light/10">
+            <TabsTrigger value="reportGenerator" className="data-[state=active]:bg-cyber-slate data-[state=active]:text-cyber-blue">
+              AI Report Generator
+            </TabsTrigger>
+            <TabsTrigger value="ragEmbeddings" className="data-[state=active]:bg-cyber-slate data-[state=active]:text-cyber-blue">
+              RAG Embeddings
+            </TabsTrigger>
+            <TabsTrigger value="unifiedWorkflow" className="data-[state=active]:bg-cyber-slate data-[state=active]:text-cyber-blue">
+              Unified Workflow
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="reportGenerator">
+            <AdminAIReportGenerator />
+          </TabsContent>
+          
+          <TabsContent value="ragEmbeddings">
+            <AdminRagEmbeddings />
+          </TabsContent>
+          
+          <TabsContent value="unifiedWorkflow">
+            <UnifiedArticleProcessor />
+          </TabsContent>
+        </Tabs>
+      </main>
+      
+      <div className="container mx-auto px-6 pb-6">
+        <Terminal title="Admin Operations Log" />
+      </div>
+    </div>
   );
 };
 

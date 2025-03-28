@@ -1,10 +1,36 @@
 
-import React from 'react';
-import { Shield, Github, Linkedin, Twitter, Mail } from 'lucide-react';
+import React, { useState } from 'react';
+import { Shield, Github, Linkedin, Twitter, Mail, Lock } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+
+const formSchema = z.object({
+  email: z.string().email({ message: "Please enter a valid email address" }),
+  password: z.string().min(8, { message: "Password must be at least 8 characters" })
+});
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
   
+  const form = useForm({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      email: '',
+      password: ''
+    }
+  });
+
   const socialLinks = [
     { icon: Github, href: "#", label: "GitHub" },
     { icon: Linkedin, href: "#", label: "LinkedIn" },
@@ -20,10 +46,45 @@ const Footer = () => {
     { name: "Privacy", href: "#" }
   ];
 
+  const onSubmitLogin = async (values: z.infer<typeof formSchema>) => {
+    try {
+      setIsLoading(true);
+      
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: values.email,
+        password: values.password,
+      });
+      
+      if (error) {
+        throw error;
+      }
+      
+      toast({
+        title: "Login successful",
+        description: "Redirecting to admin panel...",
+      });
+      
+      // Close the dialog and navigate to admin page
+      setIsLoginOpen(false);
+      navigate('/admin');
+      
+    } catch (error) {
+      console.error('Login error:', error);
+      toast({
+        title: "Login failed",
+        description: error.message || "Invalid credentials",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <footer className="bg-cyber-dark/80 border-t border-cyber-light/10 pt-12 pb-6 px-6">
       <div className="container mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10 mb-12">
+          {/* First column - Logo and socials */}
           <div>
             <div className="flex items-center space-x-2 mb-4">
               <Shield className="h-6 w-6 text-cyber-blue" />
@@ -49,6 +110,7 @@ const Footer = () => {
             </div>
           </div>
           
+          {/* Second column - Links */}
           <div>
             <h3 className="text-lg font-medium mb-4">Links</h3>
             <ul className="space-y-3">
@@ -66,6 +128,7 @@ const Footer = () => {
             </ul>
           </div>
           
+          {/* Third column - Newsletter */}
           <div>
             <h3 className="text-lg font-medium mb-4">Newsletter</h3>
             <p className="text-cyber-light/70 mb-4">
@@ -88,10 +151,92 @@ const Footer = () => {
           </div>
         </div>
         
-        <div className="pt-8 border-t border-cyber-light/10 text-center text-cyber-light/60 text-sm">
+        <div className="pt-8 border-t border-cyber-light/10 text-center text-cyber-light/60 text-sm flex justify-between items-center">
           <p>© {currentYear} ReportCase. All rights reserved.</p>
+          
+          {/* Subtle admin login link */}
+          <button 
+            onClick={() => setIsLoginOpen(true)}
+            className="text-cyber-light/30 hover:text-cyber-light/60 transition-colors flex items-center space-x-1 text-xs"
+          >
+            <Lock className="w-3 h-3" />
+            <span>Admin</span>
+          </button>
         </div>
       </div>
+      
+      {/* Admin Login Dialog */}
+      <Dialog open={isLoginOpen} onOpenChange={setIsLoginOpen}>
+        <DialogContent className="bg-cyber-dark border border-cyber-light/10 text-cyber-light w-full max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl flex items-center gap-2">
+              <Lock className="w-5 h-5 text-cyber-blue" />
+              Admin Access
+            </DialogTitle>
+            <DialogDescription className="text-cyber-light/70">
+              Enter your credentials to access the admin dashboard.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmitLogin)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-cyber-light">Email</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="admin@example.com" 
+                        className="bg-cyber-slate border-cyber-light/20 text-cyber-light" 
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormMessage className="text-red-400" />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-cyber-light">Password</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="password" 
+                        className="bg-cyber-slate border-cyber-light/20 text-cyber-light" 
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormMessage className="text-red-400" />
+                  </FormItem>
+                )}
+              />
+              
+              <DialogFooter>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => setIsLoginOpen(false)}
+                  className="border-cyber-light/20 text-cyber-light hover:bg-cyber-light/5"
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  className="bg-cyber-blue hover:bg-cyber-blue/80 text-cyber-dark"
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Authenticating..." : "Login"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </footer>
   );
 };

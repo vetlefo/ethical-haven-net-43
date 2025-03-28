@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { TerminalStore } from '@/pages/Admin';
+import { getAuthToken } from '@/utils/authUtils';
 
 export interface UseReportSubmissionProps {
   setActiveTab: (tab: string) => void;
@@ -43,6 +44,18 @@ export const useReportSubmission = ({ setActiveTab }: UseReportSubmissionProps) 
     }
 
     try {
+      // Get authentication token
+      const authToken = await getAuthToken();
+      if (!authToken) {
+        toast({
+          title: 'Authentication Required',
+          description: 'You must be logged in to submit reports',
+          variant: 'destructive',
+        });
+        TerminalStore.addLine(`Error: Authentication required for report submission`);
+        return;
+      }
+
       setIsSubmitting(true);
       TerminalStore.addLine(`Submitting generated report to database...`);
       
@@ -54,6 +67,7 @@ export const useReportSubmission = ({ setActiveTab }: UseReportSubmissionProps) 
         headers: {
           'Content-Type': 'application/json',
           'Admin-Key': apiKey,
+          'Authorization': `Bearer ${authToken}` // Add auth token
         },
         body: JSON.stringify(reportData),
       });
