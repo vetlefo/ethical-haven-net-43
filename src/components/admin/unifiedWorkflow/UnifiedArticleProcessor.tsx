@@ -76,7 +76,7 @@ const UnifiedArticleProcessor: React.FC<UnifiedArticleProcessorProps> = ({
         <Alert className="bg-cyber-dark border-cyber-blue">
           <AlertCircle className="h-4 w-4 text-cyber-blue" />
           <AlertDescription className="text-cyber-light">
-            A new Gemini API key is required. The previous key was deleted due to high usage (830 requests). Please enter a new key and validate it.
+            Gemini API key is required for content processing. Please enter a valid key to continue.
           </AlertDescription>
         </Alert>
         
