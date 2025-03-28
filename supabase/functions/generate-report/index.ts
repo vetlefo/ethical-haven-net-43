@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 // CORS headers for browser access
@@ -176,24 +177,68 @@ serve(async (req) => {
     }
 
     // Parse the request body
-    const requestData = await req.json();
+    let requestData;
+    try {
+      requestData = await req.json();
+      console.log("Request received with body:", JSON.stringify(requestData));
+    } catch (parseError) {
+      console.error("Error parsing request body:", parseError);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: `Invalid JSON in request body: ${parseError.message}`
+        }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
     
     // Get API key from environment 
     const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
     
     if (!geminiApiKey) {
       console.error("No Gemini API key found in environment");
-      throw new Error('Missing API configuration');
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Missing Gemini API key configuration'
+        }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
     }
 
+    // Check if we have content or prompt
     if (!requestData.prompt && !requestData.content) {
-      throw new Error('Missing prompt or content for report generation');
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Missing prompt or content for report generation'
+        }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
     }
 
     // Determine which field to use (content or prompt)
     const inputContent = requestData.content || requestData.prompt;
-    if (!inputContent.trim()) {
-      throw new Error('Empty prompt or content provided');
+    if (!inputContent || !inputContent.trim()) {
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Empty prompt or content provided'
+        }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
     }
 
     // Configure the request to the Gemini API
@@ -230,14 +275,32 @@ serve(async (req) => {
     if (!geminiResponse.ok) {
       const errorText = await geminiResponse.text();
       console.error("Gemini API error:", errorText);
-      throw new Error(`API processing error: ${geminiResponse.status}`);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: `Gemini API error: ${geminiResponse.status} - ${errorText}`
+        }),
+        { 
+          status: 502, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
     }
     
     const geminiData = await geminiResponse.json();
     console.log("Received response from Gemini API");
     
     if (!geminiData.candidates || !geminiData.candidates[0] || !geminiData.candidates[0].content) {
-      throw new Error('Invalid response from processing service');
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Invalid response from Gemini API - no content candidates found'
+        }),
+        { 
+          status: 502, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
     }
     
     // Extract the generated content
@@ -260,12 +323,24 @@ serve(async (req) => {
     // Verify the JSON is valid
     try {
       JSON.parse(reportJson);
+      console.log("Successfully parsed report JSON");
     } catch (error) {
       console.error("Invalid JSON in response:", error);
-      throw new Error('Generated content is not valid JSON');
+      console.log("First 200 chars of response:", reportJson.substring(0, 200));
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: `Generated content is not valid JSON: ${error.message}`
+        }),
+        { 
+          status: 502, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
     }
     
     // Return the generated report JSON
+    console.log("Successfully generated report, returning JSON");
     return new Response(
       JSON.stringify({ 
         success: true, 
@@ -281,10 +356,10 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error.message
+        error: error.message || 'An unknown error occurred'
       }),
       { 
-        status: 400, 
+        status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
     );

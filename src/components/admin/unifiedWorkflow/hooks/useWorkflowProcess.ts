@@ -56,12 +56,17 @@ export const useWorkflowProcess = () => {
       TerminalStore.addLine(`Starting unified workflow process for ${contentType} content...`);
       TerminalStore.addLine(`Step 1: Transforming raw content...`);
       TerminalStore.addLine(`Content length: ${rawContent.length} characters`);
-      TerminalStore.addLine(`Using auth token: ${authToken.substring(0, 15)}...`);
+      TerminalStore.addLine(`Content type: ${contentType}`);
+      
+      // Log a small sample of the content for debugging
+      if (rawContent.length > 50) {
+        TerminalStore.addLine(`Content preview: ${rawContent.substring(0, 50)}...`);
+      }
       
       const { data: transformData, error: transformError } = await supabase.functions.invoke('generate-report', {
         body: {
           content: rawContent,
-          contentType
+          contentType: contentType
         },
         headers: {
           'Authorization': `Bearer ${authToken}`,

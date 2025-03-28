@@ -10,6 +10,7 @@ import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Steps, Step } from '@/components/admin/unifiedWorkflow/Steps';
 import { ProcessStatus } from '@/components/admin/unifiedWorkflow/Steps';
+import { TerminalStore } from '@/pages/Admin';
 
 const RAGContentProcessor: React.FC = () => {
   // State for the UI
@@ -41,9 +42,16 @@ const RAGContentProcessor: React.FC = () => {
 
       // Step 1: Process with Gemini
       console.log("Step 1: Processing with Gemini...");
+      TerminalStore?.addLine?.("RAG Processor: Step 1 - Processing with Gemini...") || null;
+      
       const authToken = await supabase.auth.getSession().then(res => res.data.session?.access_token || '');
       if (!authToken) {
         throw new Error('Authentication required. Please log in again.');
+      }
+      
+      TerminalStore?.addLine?.(`RAG Processor: Content type: ${contentType}, Content length: ${rawContent.length} characters`) || null;
+      if (rawContent.length > 50) {
+        TerminalStore?.addLine?.(`RAG Processor: Content preview: ${rawContent.substring(0, 50)}...`) || null;
       }
       
       const { data: transformData, error: transformError } = await supabase.functions.invoke('generate-report', {
@@ -53,14 +61,17 @@ const RAGContentProcessor: React.FC = () => {
         },
         headers: {
           'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json'
         }
       });
       
       if (transformError) {
+        TerminalStore?.addLine?.(`RAG Processor Error: Generate-report function error: ${transformError.message}`) || null;
         throw new Error(`Gemini processing error: ${transformError.message}`);
       }
       
       if (!transformData || !transformData.reportJson) {
+        TerminalStore?.addLine?.(`RAG Processor Error: No data returned from the processing service`) || null;
         throw new Error('No data returned from the processing service');
       }
       
@@ -69,9 +80,12 @@ const RAGContentProcessor: React.FC = () => {
       try {
         parsedReport = JSON.parse(transformData.reportJson);
         console.log("Successfully parsed report JSON:", parsedReport.title);
+        TerminalStore?.addLine?.(`RAG Processor: Successfully parsed report JSON: ${parsedReport.title}`) || null;
       } catch (e) {
         console.error("Error parsing report JSON:", e);
         console.log("Raw report JSON:", transformData.reportJson.substring(0, 100) + "...");
+        TerminalStore?.addLine?.(`RAG Processor Error: Failed to parse report JSON: ${e.message}`) || null;
+        TerminalStore?.addLine?.(`RAG Processor Error: Raw JSON preview: ${transformData.reportJson.substring(0, 100)}...`) || null;
         throw new Error(`Failed to parse report JSON: ${e.message}`);
       }
       
@@ -81,6 +95,8 @@ const RAGContentProcessor: React.FC = () => {
 
       // Step 2: Chunk the content
       console.log("Step 2: Chunking content...");
+      TerminalStore?.addLine?.("RAG Processor: Step 2 - Chunking content...") || null;
+      
       const paragraphs = rawContent.split(/\n\s*\n/);
       const chunks = paragraphs.map((p, i) => ({
         text: p.trim(),
@@ -89,6 +105,7 @@ const RAGContentProcessor: React.FC = () => {
       })).filter(chunk => chunk.text.length > 0);
       
       console.log(`Created ${chunks.length} chunks from content`);
+      TerminalStore?.addLine?.(`RAG Processor: Created ${chunks.length} chunks from content`) || null;
       
       setProcessStatus(['completed', 'completed', 'processing', 'waiting']);
       setProcessingStep(2);
@@ -96,6 +113,8 @@ const RAGContentProcessor: React.FC = () => {
 
       // Step 3: Generate embeddings
       console.log("Step 3: Generating embeddings...");
+      TerminalStore?.addLine?.("RAG Processor: Step 3 - Generating embeddings...") || null;
+      
       const { data: embeddingData, error: embeddingError } = await supabase.functions.invoke('process-for-rag', {
         body: {
           content: JSON.stringify(chunks),
@@ -109,10 +128,11 @@ const RAGContentProcessor: React.FC = () => {
       
       if (embeddingError) {
         console.warn("Warning: Embedding generation error:", embeddingError);
-        // Continue with the process even if embeddings fail
+        TerminalStore?.addLine?.(`RAG Processor Warning: Embedding generation error: ${embeddingError.message}`) || null;
+        TerminalStore?.addLine?.("RAG Processor: Continuing with the process even though embeddings failed") || null;
+      } else {
+        TerminalStore?.addLine?.("RAG Processor: Embeddings processed successfully") || null;
       }
-      
-      console.log("Embeddings processed");
       
       setProcessStatus(['completed', 'completed', 'completed', 'processing']);
       setProcessingStep(3);
@@ -120,7 +140,12 @@ const RAGContentProcessor: React.FC = () => {
 
       // Step 4: Store everything in the database - add RAG flag
       console.log("Step 4: Storing in database...");
+      TerminalStore?.addLine?.("RAG Processor: Step 4 - Storing in database...") || null;
+      
+      // Make sure the is_rag_enabled flag is set
       parsedReport.is_rag_enabled = true;
+      
+      TerminalStore?.addLine?.(`RAG Processor: Adding is_rag_enabled flag: ${parsedReport.is_rag_enabled}`) || null;
       
       const { data: storeData, error: storeError } = await supabase.functions.invoke('store-report', {
         body: parsedReport,
@@ -130,14 +155,18 @@ const RAGContentProcessor: React.FC = () => {
       });
       
       if (storeError) {
+        TerminalStore?.addLine?.(`RAG Processor Error: Database storage error: ${storeError.message}`) || null;
         throw new Error(`Database storage error: ${storeError.message}`);
       }
       
       if (!storeData || !storeData.report) {
+        TerminalStore?.addLine?.(`RAG Processor Error: Failed to store report in database - no report ID returned`) || null;
         throw new Error('Failed to store report in database');
       }
       
       console.log("Report stored successfully:", storeData.report.id);
+      TerminalStore?.addLine?.(`RAG Processor: Report stored successfully with ID: ${storeData.report.id}`) || null;
+      
       setProcessStatus(['completed', 'completed', 'completed', 'completed']);
 
       // Set the result data
