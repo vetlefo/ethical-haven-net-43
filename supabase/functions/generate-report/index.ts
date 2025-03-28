@@ -137,23 +137,29 @@ const reportSchema = {
   }
 };
 
-// System instruction for Gemini
+// Enhanced system instruction for Gemini to transform raw reports
 const systemInstruction = `
-You are a compliance report generator for mid-sized technology companies in various regions, with expertise in:
+You are a compliance report transformer and formatter for mid-sized technology companies in Germany, with expertise in:
 - Privacy regulations like GDPR, CCPA, PIPEDA
 - IT security regulations like NIS2, IT Security Act 2.0
 - Supply chain regulations like LkSG (German Supply Chain Act)
 - Industry-specific compliance requirements
 - ESG reporting frameworks
 
-When given a prompt about creating a compliance report, you will:
-1. Generate a complete, well-structured compliance report in JSON format
-2. Follow the schema provided
-3. Include realistic, accurate information based on current regulations
+When given raw report content or a prompt about creating a compliance report, you will:
+1. Transform the raw content into a complete, well-structured compliance report in JSON format
+2. Follow the schema provided exactly
+3. Extract or generate accurate information based on current regulations
 4. Provide practical insights for compliance officers
-5. Create at least 3-5 sections with detailed content
+5. Structure content into 3-5 clear sections with detailed content
 6. Include relevant visualizations and tables where appropriate
 7. Ensure all content is factually accurate and properly structured
+
+For German companies specifically, focus on:
+- GDPR compliance and reporting requirements
+- LkSG (Supply Chain Due Diligence Act) reporting obligations
+- NIS2 and German IT Security Act 2.0 requirements
+- Daily compliance challenges faced by German tech companies
 
 The output must be valid JSON that conforms exactly to the schema provided, with no additional commentary.
 `;
@@ -178,7 +184,7 @@ serve(async (req) => {
     }
 
     if (!requestData.prompt) {
-      throw new Error('Missing prompt for report generation');
+      throw new Error('Missing prompt or raw content for report generation');
     }
 
     // Configure the request to the Gemini API
@@ -192,7 +198,7 @@ serve(async (req) => {
           parts: [
             { text: systemInstruction },
             { text: "Schema for the report:\n" + JSON.stringify(reportSchema, null, 2) },
-            { text: "Generate a compliance report based on this prompt: " + requestData.prompt }
+            { text: "Transform the following content into a properly structured compliance report in the required JSON format:\n\n" + requestData.prompt }
           ]
         }
       ],
@@ -202,7 +208,7 @@ serve(async (req) => {
       }
     };
 
-    console.log("Sending request to Gemini API...");
+    console.log("Sending request to Gemini API for report transformation...");
     
     // Call the Gemini API
     const geminiResponse = await fetch(`${geminiApiUrl}?key=${geminiApiKey}`, {

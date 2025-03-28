@@ -5,6 +5,7 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import AdminReportSubmitter from '@/components/AdminReportSubmitter';
 import AdminAIReportGenerator from '@/components/AdminAIReportGenerator';
+import AdminRagEmbeddings from '@/components/AdminRagEmbeddings';
 import Terminal from '@/components/Terminal';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from '@/components/ui/card';
@@ -19,6 +20,7 @@ const Admin: React.FC = () => {
     "Schema validation module loaded.",
     "JSON formatter ready.",
     "Gemini API connection established.",
+    "Vector embedding module initialized.",
     "Ready to process compliance reports."
   ]);
 
@@ -35,9 +37,10 @@ const Admin: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2">
               <Tabs defaultValue="manual" className="w-full mx-auto">
-                <TabsList className="grid w-full grid-cols-2 mb-6">
+                <TabsList className="grid w-full grid-cols-3 mb-6">
                   <TabsTrigger value="manual">Manual Submission</TabsTrigger>
-                  <TabsTrigger value="ai">AI-Assisted Generation</TabsTrigger>
+                  <TabsTrigger value="ai">Report Transformation</TabsTrigger>
+                  <TabsTrigger value="rag">RAG Embeddings</TabsTrigger>
                 </TabsList>
                 
                 <TabsContent value="manual">
@@ -46,6 +49,10 @@ const Admin: React.FC = () => {
                 
                 <TabsContent value="ai">
                   <AdminAIReportGenerator />
+                </TabsContent>
+                
+                <TabsContent value="rag">
+                  <AdminRagEmbeddings />
                 </TabsContent>
               </Tabs>
             </div>

@@ -31,8 +31,8 @@ const AdminAIReportGenerator: React.FC = () => {
 
     if (!prompt.trim()) {
       toast({
-        title: 'Prompt Required',
-        description: 'Please enter a detailed prompt for the AI to generate a report',
+        title: 'Content Required',
+        description: 'Please enter a detailed prompt or paste the raw report content to transform',
         variant: 'destructive',
       });
       return;
@@ -63,15 +63,15 @@ const AdminAIReportGenerator: React.FC = () => {
       setActiveTab('result');
       
       toast({
-        title: 'Report Generated',
-        description: 'AI has generated a report based on your prompt',
+        title: 'Report Transformed',
+        description: 'AI has transformed your content into a structured report format',
       });
       
     } catch (error) {
       console.error('Error generating report:', error);
       toast({
-        title: 'Generation Error',
-        description: error.message || 'Failed to generate report',
+        title: 'Transformation Error',
+        description: error.message || 'Failed to transform report',
         variant: 'destructive',
       });
     } finally {
@@ -144,7 +144,7 @@ const AdminAIReportGenerator: React.FC = () => {
       
       toast({
         title: 'Success!',
-        description: 'AI-generated report has been added to the database',
+        description: 'Transformed report has been added to the database',
       });
       
       // Clear generated report after successful submission
@@ -166,15 +166,15 @@ const AdminAIReportGenerator: React.FC = () => {
   return (
     <Card className="w-full mx-auto bg-background/80 backdrop-blur-sm border-cyber-blue/30">
       <CardHeader>
-        <CardTitle className="text-2xl text-cyber-light">AI-Assisted Report Generation</CardTitle>
+        <CardTitle className="text-2xl text-cyber-light">Report Transformation</CardTitle>
         <CardDescription className="text-cyber-light/70">
-          Process raw reports into structured JSON format using Gemini AI
+          Transform raw reports into structured JSON format for website publication
         </CardDescription>
       </CardHeader>
       <CardContent>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-2 mb-4">
-            <TabsTrigger value="prompt">Generate Report</TabsTrigger>
+            <TabsTrigger value="prompt">Transform Report</TabsTrigger>
             <TabsTrigger value="result" disabled={!generatedReport}>Result</TabsTrigger>
           </TabsList>
           
@@ -198,15 +198,18 @@ const AdminAIReportGenerator: React.FC = () => {
             
             <div>
               <label htmlFor="prompt" className="block text-sm font-medium text-cyber-light mb-1">
-                Report Transformation Prompt
+                Raw Report Content or Transformation Prompt
               </label>
               <Textarea
                 id="prompt"
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                placeholder="Describe the report you need or paste raw content to be transformed (e.g. 'Generate a detailed GDPR compliance report for healthcare providers in Germany' or 'Convert this plain text report into structured JSON...')"
-                className="w-full min-h-[200px]"
+                placeholder="Paste your raw report content to be transformed into structured JSON, or provide a detailed prompt (e.g., 'Transform this GDPR compliance report for German healthcare providers...')"
+                className="w-full min-h-[300px]"
               />
+              <p className="text-xs text-cyber-light/70 mt-1">
+                For best results with an existing report, paste the full text. The AI will extract the key information and format it according to our schema.
+              </p>
             </div>
             
             <Button 
@@ -218,12 +221,12 @@ const AdminAIReportGenerator: React.FC = () => {
               {isGenerating ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Processing...
+                  Transforming...
                 </>
               ) : (
                 <>
                   <Sparkles className="mr-2 h-4 w-4" />
-                  Generate Structured Report
+                  Transform to Structured Format
                 </>
               )}
             </Button>
@@ -233,7 +236,7 @@ const AdminAIReportGenerator: React.FC = () => {
             <div>
               <div className="flex justify-between items-center mb-1">
                 <label htmlFor="generatedReport" className="block text-sm font-medium text-cyber-light">
-                  Generated Report JSON
+                  Transformed Report JSON
                 </label>
                 <div className="flex items-center">
                   {isValid ? (
@@ -250,11 +253,11 @@ const AdminAIReportGenerator: React.FC = () => {
                 id="generatedReport"
                 value={generatedReport}
                 onChange={(e) => handleReportChange(e.target.value)}
-                placeholder="AI-generated report will appear here"
+                placeholder="Transformed report will appear here"
                 className="w-full min-h-[300px] font-mono text-sm"
               />
               <p className="text-xs text-cyber-light/70 mt-1">
-                You can edit the generated JSON if needed before submitting.
+                You can edit the transformed JSON if needed before submitting to the website.
               </p>
             </div>
             
@@ -279,7 +282,7 @@ const AdminAIReportGenerator: React.FC = () => {
                 className="w-1/2" 
                 onClick={() => setActiveTab('prompt')}
               >
-                Back to Prompt
+                Back to Content
               </Button>
               
               <Button 
@@ -294,7 +297,7 @@ const AdminAIReportGenerator: React.FC = () => {
                     Submitting...
                   </>
                 ) : (
-                  'Submit Report'
+                  'Publish to Website'
                 )}
               </Button>
             </div>
