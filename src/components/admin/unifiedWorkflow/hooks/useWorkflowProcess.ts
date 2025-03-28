@@ -61,14 +61,32 @@ export const useWorkflowProcess = () => {
       
       const reportJson = transformData.reportJson;
       TerminalStore.addLine(`Content transformation completed successfully`);
-      TerminalStore.addLine(`Generated report JSON structure: ${Object.keys(JSON.parse(reportJson)).join(', ')}`);
       
-      // Step 2: Process for RAG
+      const parsedReport = JSON.parse(reportJson);
+      TerminalStore.addLine(`Generated report with title: "${parsedReport.title}"`);
+      
+      // Step 2: Store the report directly (skip RAG processing for now)
       setProcessStatus(['completed', 'processing', 'waiting']);
       setProcessingStep(1);
       setCurrentStep(2);
       
-      TerminalStore.addLine(`Step 2: Processing for RAG embeddings...`);
+      TerminalStore.addLine(`Step 2: Storing report in database...`);
+      
+      const { data: storeData, error: storeError } = await supabase.functions.invoke('store-report', {
+        body: parsedReport
+      });
+      
+      if (storeError) {
+        TerminalStore.addLine(`Storage error: ${storeError.message}`);
+        throw new Error(`Storage error: ${storeError.message}`);
+      }
+      
+      // Step 3: Process for RAG (optional)
+      setProcessStatus(['completed', 'completed', 'processing']);
+      setProcessingStep(2);
+      setCurrentStep(3);
+      
+      TerminalStore.addLine(`Step 3: Processing for RAG embeddings...`);
       
       const { data: ragData, error: ragError } = await supabase.functions.invoke('process-for-rag', {
         body: {
@@ -78,72 +96,18 @@ export const useWorkflowProcess = () => {
       });
       
       if (ragError) {
-        TerminalStore.addLine(`RAG processing error: ${ragError.message}`);
-        throw new Error(`RAG processing error: ${ragError.message}`);
-      }
-      
-      if (!ragData || !ragData.processedContent) {
-        TerminalStore.addLine(`Error: No processed content returned from RAG function`);
-        throw new Error('Failed to process content for RAG');
-      }
-      
-      const processedContent = ragData.processedContent;
-      TerminalStore.addLine(`RAG processing completed successfully`);
-      
-      // Log what's in the processed content
-      try {
-        const contentData = JSON.parse(processedContent);
-        if (Array.isArray(contentData)) {
-          TerminalStore.addLine(`Processed ${contentData.length} items for database insertion`);
-        } else {
-          TerminalStore.addLine(`Generated a document with ID: ${contentData.document_id || 'unknown'}`);
-        }
-      } catch (e) {
-        TerminalStore.addLine(`Warning: Could not parse processed content as JSON`);
-      }
-      
-      // Step 3: Store in database
-      setProcessStatus(['completed', 'completed', 'processing']);
-      setProcessingStep(2);
-      setCurrentStep(3);
-      
-      TerminalStore.addLine(`Step 3: Storing content in database...`);
-      
-      const contentData = JSON.parse(processedContent);
-      let storeFunction = 'admin-rag-embeddings';
-      
-      if (contentType === 'competitive-intel') {
-        storeFunction = 'admin-competitive-intel';
-        TerminalStore.addLine(`Using ${storeFunction} function to store competitive intelligence data...`);
+        TerminalStore.addLine(`Warning: RAG processing error: ${ragError.message}`);
+        TerminalStore.addLine(`Report was saved successfully, but RAG embeddings failed`);
+        setProcessStatus(['completed', 'completed', 'error']);
       } else {
-        TerminalStore.addLine(`Using ${storeFunction} function to store RAG embeddings...`);
+        setProcessStatus(['completed', 'completed', 'completed']);
+        TerminalStore.addLine(`RAG processing completed successfully`);
       }
       
-      const { data: storeData, error: storeError } = await supabase.functions.invoke(storeFunction, {
-        body: contentData,
-        headers: {
-          'Admin-Key': apiKey,
-        }
-      });
-      
-      if (storeError) {
-        TerminalStore.addLine(`Storage error: ${storeError.message}`);
-        TerminalStore.addLine(`Check that your admin API key is correct and the database is accessible`);
-        throw new Error(`Storage error: ${storeError.message}`);
-      }
-      
-      // Log the response from the store function
-      if (storeData) {
-        TerminalStore.addLine(`Database response: ${JSON.stringify(storeData)}`);
-      }
-      
-      setProcessStatus(['completed', 'completed', 'completed']);
-      TerminalStore.addLine(`Content stored successfully in the database`);
-      TerminalStore.addLine(`Unified workflow process completed successfully`);
-      
+      // Success message regardless of RAG outcome (because the report is saved)
       toast({
         title: 'Success!',
-        description: `${contentType === 'competitive-intel' ? 'Competitive intelligence' : 'Compliance report'} processed and stored successfully`,
+        description: `Compliance report "${parsedReport.title}" has been processed and stored successfully`,
       });
       
       // Reset form after successful submission
