@@ -97,6 +97,52 @@ const ragSchema = {
   }
 };
 
+// Schema for competitive intelligence reports
+const competitiveIntelSchema = {
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "competitor_name": { "type": "string" },
+      "primary_categories": { 
+        "type": "array", 
+        "items": { "type": "string" }
+      },
+      "feature_summary": { "type": "string" },
+      "feature_breadth_indicator": { "type": "string" },
+      "ease_of_use_summary": { "type": "string" },
+      "pricing_model": { "type": "string" },
+      "target_market_segment": { 
+        "type": "array", 
+        "items": { "type": "string" }
+      },
+      "geographic_focus": { 
+        "type": "array", 
+        "items": { "type": "string" }
+      },
+      "ai_integration_level": { "type": "string" },
+      "integration_capabilities_summary": { "type": "string" },
+      "key_strengths": { 
+        "type": "array", 
+        "items": { "type": "string" }
+      },
+      "key_weaknesses": { 
+        "type": "array", 
+        "items": { "type": "string" }
+      },
+      "company_size_proxy": {
+        "type": "object",
+        "properties": {
+          "employee_count": { "type": ["string", "null"] },
+          "funding_status": { "type": ["string", "null"] }
+        }
+      },
+      "founded_year": { "type": ["integer", "null"] },
+      "source_report_identifier": { "type": ["string", "null"] }
+    }
+  }
+};
+
 // System instruction for Gemini to process content for RAG
 const systemInstruction = `
 You are a processing engine that transforms raw compliance reports into structured, chunked documents ready for RAG (Retrieval Augmented Generation) with vector embeddings. Your focus is on compliance reports for mid-sized German technology companies.
@@ -124,6 +170,37 @@ Focus on extracting:
 The output must be valid JSON that conforms exactly to the schema provided, with no additional commentary.
 `;
 
+// System instruction for competitive intelligence analysis
+const competitiveIntelInstruction = `
+Act as a Data Analyst specializing in Competitive Intelligence.
+
+Your Task:
+I will provide you with the text content of ONE comprehensive competitor analysis report (approx. 10-15 pages) that covers MULTIPLE software companies in the reporting and compliance space. Your task is to carefully read the entire report, identify the sections pertaining to each competitor, extract specific pieces of information for EACH competitor, summarize them concisely, and output the results as a single structured JSON array. Each object within the array will represent one competitor.
+
+Goal:
+To create a consistent, structured dataset summarizing key attributes of multiple competitors from a single source document, which will later be used for visualization and comparative analysis. It is crucial that you use the exact same JSON structure and keys for every competitor object within the array.
+
+Output Format:
+Please provide the output STRICTLY as a single JSON array. Each element in the array must be a JSON object conforming to the structure specified below. Do NOT include any introductory text, explanations, or markdown formatting outside of the JSON structure itself.
+
+Important Instructions:
+* Iterate through the report, identifying each competitor discussed.
+* For EACH competitor, extract the information required for the fields in the JSON object structure.
+* If information for a specific field cannot be found for a competitor in the report, use 'null' for number/integer fields, "Not specified" for string fields, or an empty array [] for list fields, as appropriate based on the JSON structure. DO NOT invent information.
+* Keep summaries concise and focused on the key points from the report for that specific competitor.
+* Ensure the final output is a single, valid JSON array containing one object per competitor analyzed in the report.
+* Consistency in applying these instructions is paramount.
+
+Focus on extracting:
+- Company information (name, founding year, size)
+- Product features and capabilities
+- Market positioning and target segments
+- Geographic focus
+- Strengths and weaknesses
+- AI integration and technology stack
+- Pricing models
+`;
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -144,9 +221,12 @@ serve(async (req) => {
     }
 
     if (!requestData.content) {
-      throw new Error('Missing content for RAG processing');
+      throw new Error('Missing content for processing');
     }
 
+    // Determine if this is a compliance report or competitive intelligence report
+    const isCompetitiveIntel = requestData.contentType === 'competitive-intel';
+    
     // Configure the request to the Gemini API
     const geminiApiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro-exp-03-25:generateContent";
     const geminiApiKey = requestData.geminiApiKey;
@@ -156,9 +236,15 @@ serve(async (req) => {
         {
           role: "user",
           parts: [
-            { text: systemInstruction },
-            { text: "Schema for RAG document chunks:\n" + JSON.stringify(ragSchema, null, 2) },
-            { text: "Process the following compliance report content into chunks suitable for RAG:\n\n" + requestData.content }
+            { text: isCompetitiveIntel ? competitiveIntelInstruction : systemInstruction },
+            { text: isCompetitiveIntel 
+              ? "Schema for competitive intelligence reports:\n" + JSON.stringify(competitiveIntelSchema, null, 2)
+              : "Schema for RAG document chunks:\n" + JSON.stringify(ragSchema, null, 2) 
+            },
+            { text: isCompetitiveIntel
+              ? "Process the following competitor analysis report into structured JSON format:\n\n" + requestData.content
+              : "Process the following compliance report content into chunks suitable for RAG:\n\n" + requestData.content 
+            }
           ]
         }
       ],
@@ -168,7 +254,7 @@ serve(async (req) => {
       }
     };
 
-    console.log("Sending request to Gemini API for RAG processing...");
+    console.log(`Sending request to Gemini API for ${isCompetitiveIntel ? 'competitive intelligence' : 'RAG'} processing...`);
     
     // Call the Gemini API
     const geminiResponse = await fetch(`${geminiApiUrl}?key=${geminiApiKey}`, {

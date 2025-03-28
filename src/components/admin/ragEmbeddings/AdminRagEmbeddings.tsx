@@ -14,6 +14,8 @@ const AdminRagEmbeddings: React.FC = () => {
     rawContent,
     setRawContent,
     processedContent,
+    contentType,
+    setContentType,
     isProcessing,
     isSubmitting,
     isValid,
@@ -25,9 +27,9 @@ const AdminRagEmbeddings: React.FC = () => {
   return (
     <Card className="w-full mx-auto bg-background/80 backdrop-blur-sm border-cyber-blue/30">
       <CardHeader>
-        <CardTitle className="text-2xl text-cyber-light">RAG Embeddings Generator</CardTitle>
+        <CardTitle className="text-2xl text-cyber-light">RAG and Competitive Intelligence</CardTitle>
         <CardDescription className="text-cyber-light/70">
-          Process raw reports into structured JSON for RAG vector embeddings
+          Process reports into structured data for RAG embeddings or competitive analysis
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -36,6 +38,8 @@ const AdminRagEmbeddings: React.FC = () => {
           setGeminiApiKey={setGeminiApiKey}
           rawContent={rawContent}
           setRawContent={setRawContent}
+          contentType={contentType}
+          setContentType={setContentType}
           isProcessing={isProcessing}
           onProcess={handleProcess}
         />

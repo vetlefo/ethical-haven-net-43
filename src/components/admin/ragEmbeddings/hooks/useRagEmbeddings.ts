@@ -10,6 +10,7 @@ export const useRagEmbeddings = () => {
   const [rawContent, setRawContent] = useState('');
   const [processedContent, setProcessedContent] = useState('');
   const [isValid, setIsValid] = useState(false);
+  const [contentType, setContentType] = useState('compliance');
 
   const handleProcess = async () => {
     if (!geminiApiKey.trim()) {
@@ -24,7 +25,7 @@ export const useRagEmbeddings = () => {
     if (!rawContent.trim()) {
       toast({
         title: 'Content Required',
-        description: 'Please enter the raw report content to process for RAG embeddings',
+        description: 'Please enter the raw report content to process',
         variant: 'destructive',
       });
       return;
@@ -40,14 +41,15 @@ export const useRagEmbeddings = () => {
         },
         body: JSON.stringify({
           geminiApiKey,
-          content: rawContent
+          content: rawContent,
+          contentType
         }),
       });
       
       const result = await response.json();
       
       if (!response.ok) {
-        throw new Error(result.error || 'Failed to process content for RAG');
+        throw new Error(result.error || 'Failed to process content');
       }
       
       setProcessedContent(result.processedContent);
@@ -55,7 +57,9 @@ export const useRagEmbeddings = () => {
       
       toast({
         title: 'Content Processed',
-        description: 'Raw content has been processed for RAG embeddings',
+        description: contentType === 'competitive-intel' 
+          ? 'Competitive intelligence data has been extracted' 
+          : 'Raw content has been processed for RAG embeddings',
       });
       
     } catch (error) {
@@ -119,8 +123,13 @@ export const useRagEmbeddings = () => {
       // Parse the JSON input
       const contentData = JSON.parse(processedContent);
       
-      // Submit the processed content for RAG embeddings
-      const response = await fetch('/api/admin-rag-embeddings', {
+      // Determine the endpoint based on content type
+      const endpoint = contentType === 'competitive-intel' 
+        ? '/api/admin-competitive-intel' 
+        : '/api/admin-rag-embeddings';
+      
+      // Submit the processed content
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -132,12 +141,14 @@ export const useRagEmbeddings = () => {
       const result = await response.json();
       
       if (!response.ok) {
-        throw new Error(result.error || 'Failed to submit RAG embeddings');
+        throw new Error(result.error || 'Failed to submit content');
       }
       
       toast({
         title: 'Success!',
-        description: 'Content has been processed and added to the RAG database',
+        description: contentType === 'competitive-intel'
+          ? 'Competitive intelligence data has been saved to the database'
+          : 'Content has been processed and added to the RAG database',
       });
       
       // Clear processed content after successful submission
@@ -164,6 +175,8 @@ export const useRagEmbeddings = () => {
     rawContent,
     setRawContent,
     processedContent,
+    contentType,
+    setContentType,
     isProcessing,
     isSubmitting,
     isValid,
