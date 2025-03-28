@@ -6,6 +6,7 @@ import Footer from '@/components/Footer';
 import AdminReportSubmitter from '@/components/AdminReportSubmitter';
 import AdminAIReportGenerator from '@/components/admin/reportGenerator/AdminAIReportGenerator';
 import AdminRagEmbeddings from '@/components/admin/ragEmbeddings/AdminRagEmbeddings';
+import UnifiedArticleProcessor from '@/components/admin/unifiedWorkflow/UnifiedArticleProcessor';
 import Terminal from '@/components/Terminal';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from '@/components/ui/card';
@@ -60,12 +61,17 @@ const Admin: React.FC = () => {
           
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2">
-              <Tabs defaultValue="manual" className="w-full mx-auto">
-                <TabsList className="grid w-full grid-cols-3 mb-6">
+              <Tabs defaultValue="unified" className="w-full mx-auto">
+                <TabsList className="grid w-full grid-cols-4 mb-6">
+                  <TabsTrigger value="unified">One-Step Process</TabsTrigger>
                   <TabsTrigger value="manual">Manual Submission</TabsTrigger>
                   <TabsTrigger value="ai">Report Transformation</TabsTrigger>
                   <TabsTrigger value="rag">RAG Embeddings</TabsTrigger>
                 </TabsList>
+                
+                <TabsContent value="unified">
+                  <UnifiedArticleProcessor />
+                </TabsContent>
                 
                 <TabsContent value="manual">
                   <AdminReportSubmitter />
