@@ -10,10 +10,9 @@ export const useGeminiKeyValidation = (initialGeminiApiKey: string) => {
 
   // Reset validation status when key changes
   useEffect(() => {
-    if (geminiApiKey !== initialGeminiApiKey) {
-      setIsKeyValidated(false);
-    }
-  }, [geminiApiKey, initialGeminiApiKey]);
+    // Always invalidate key when it changes
+    setIsKeyValidated(false);
+  }, [geminiApiKey]);
 
   // Validate the Gemini API key
   const validateGeminiApiKey = async (key: string): Promise<boolean> => {
@@ -71,12 +70,8 @@ export const useGeminiKeyValidation = (initialGeminiApiKey: string) => {
     }
   };
 
-  // Only automatically validate on initial mount, not on every key change
-  useEffect(() => {
-    if (geminiApiKey && !isKeyValidated && !validationInProgress && !validationLockRef.current) {
-      validateGeminiApiKey(geminiApiKey);
-    }
-  }, []); // Empty dependency array ensures this runs only once on mount
+  // Do not automatically validate on initial mount
+  // This is changed to require explicit validation
 
   return {
     geminiApiKey,

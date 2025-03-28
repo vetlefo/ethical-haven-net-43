@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { AlertCircle, FileText, Loader2 } from 'lucide-react';
+import { AlertCircle, FileText, Loader2, KeyRound } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import ApiKeyInput from '../shared/ApiKeyInput';
@@ -33,26 +33,33 @@ const UnifiedArticleProcessor: React.FC<UnifiedArticleProcessorProps> = ({
     processStatus,
     handleProcess,
     validateGeminiApiKey,
-    isKeyValidated
+    isKeyValidated,
+    validationInProgress
   } = useUnifiedWorkflow(geminiApiKey);
 
-  // Track when manual validation has been attempted
-  const [manualValidationAttempted, setManualValidationAttempted] = useState(false);
-
   // Handle manual key validation
-  const handleManualValidation = async () => {
-    setManualValidationAttempted(true);
-    const isValid = await validateGeminiApiKey(geminiApiKey);
-    if (!isValid) {
+  const handleValidateKey = async () => {
+    if (!geminiApiKey.trim()) {
       toast({
-        title: "Invalid Gemini API Key",
-        description: "The API key provided is invalid. Please check and try again.",
+        title: "API Key Required",
+        description: "Please enter a Gemini API key before validating.",
         variant: "destructive"
       });
-    } else {
+      return;
+    }
+    
+    const isValid = await validateGeminiApiKey(geminiApiKey);
+    
+    if (isValid) {
       toast({
         title: "API Key Validated",
         description: "Your Gemini API key has been validated successfully.",
+      });
+    } else {
+      toast({
+        title: "Invalid API Key",
+        description: "The API key provided is invalid. Please check and try again.",
+        variant: "destructive"
       });
     }
   };
@@ -69,20 +76,48 @@ const UnifiedArticleProcessor: React.FC<UnifiedArticleProcessorProps> = ({
         <Alert className="bg-cyber-dark border-cyber-blue">
           <AlertCircle className="h-4 w-4 text-cyber-blue" />
           <AlertDescription className="text-cyber-light">
-            A valid Gemini API key is required for AI processing. Please validate your key using the button below.
+            A new Gemini API key is required. The previous key was deleted due to high usage (830 requests). Please enter a new key and validate it.
           </AlertDescription>
         </Alert>
         
-        <ApiKeyInput
-          value={geminiApiKey}
-          onChange={(value) => {
-            setGeminiApiKey(value);
-          }}
-          label="Gemini API Key (Session Only)"
-          placeholder="Enter your Gemini API key for this session only"
-          description="This key is only stored in your browser for this session and is not saved to our database."
-          validateKey={validateGeminiApiKey}
-        />
+        <div className="space-y-4">
+          <ApiKeyInput
+            value={geminiApiKey}
+            onChange={setGeminiApiKey}
+            label="Gemini API Key (Session Only)"
+            placeholder="Enter your Gemini API key for this session only"
+            description="This key is only stored in your browser for this session and is not saved to our database."
+            validateKey={validateGeminiApiKey}
+          />
+          
+          <Button 
+            onClick={handleValidateKey} 
+            disabled={validationInProgress || !geminiApiKey.trim()}
+            variant="outline"
+            className="w-full border-cyber-blue/50 hover:bg-cyber-blue/20"
+          >
+            {validationInProgress ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Validating...
+              </>
+            ) : (
+              <>
+                <KeyRound className="mr-2 h-4 w-4" />
+                Validate Gemini API Key
+              </>
+            )}
+          </Button>
+          
+          {isKeyValidated && (
+            <Alert className="bg-green-950/50 border-green-500">
+              <AlertCircle className="h-4 w-4 text-green-500" />
+              <AlertDescription className="text-green-400">
+                API key validated successfully. You can now process content.
+              </AlertDescription>
+            </Alert>
+          )}
+        </div>
         
         <ApiKeyInput
           value={apiKey}

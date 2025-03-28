@@ -16,7 +16,7 @@ export const useUnifiedWorkflow = (initialGeminiApiKey: string) => {
     isKeyValidated,
     validateGeminiApiKey,
     validationInProgress
-  } = useGeminiKeyValidation(initialGeminiApiKey);
+  } = useGeminiKeyValidation(''); // Reset default to empty string
   
   // Use the workflow process hook
   const {
