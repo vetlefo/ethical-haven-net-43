@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Download, Calendar, Globe, FileDigit, Share2, FileText, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Download, Calendar, Globe, FileDigit, Share2, FileText, ChevronRight, Clock } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { ComplianceReport, getReportBySlug } from '@/services/reportService';
 import VisualizationModal from '@/components/VisualizationModal';
-import { visualizationPainPoints, marketEntryHeatmap } from '@/utils/visualizationData';
+import { painPointsData, marketEntryData } from '@/utils/visualizationData';
 import { toast } from '@/hooks/use-toast';
 
 const ReportDetail: React.FC = () => {
@@ -22,7 +22,7 @@ const ReportDetail: React.FC = () => {
   const [selectedVisualization, setSelectedVisualization] = useState({
     title: '',
     type: '',
-    data: visualizationPainPoints
+    data: painPointsData
   });
 
   useEffect(() => {
@@ -61,7 +61,7 @@ const ReportDetail: React.FC = () => {
     setSelectedVisualization({
       title,
       type,
-      data: type === 'radar' ? visualizationPainPoints : marketEntryHeatmap
+      data: type === 'radar' ? painPointsData : marketEntryData
     });
     setVisualizationOpen(true);
   };

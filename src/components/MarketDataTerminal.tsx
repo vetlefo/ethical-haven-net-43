@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
@@ -50,7 +49,7 @@ const MarketDataTerminal: React.FC<MarketDataTerminalProps> = ({ interactive = f
           brightBlue: '#82b1ff',
           brightMagenta: '#e1bee7',
           brightCyan: '#80deea',
-          brightWhite: '#ffffff',
+          brightWhite: '#ffffff'
         }
       });
 
@@ -62,7 +61,7 @@ const MarketDataTerminal: React.FC<MarketDataTerminalProps> = ({ interactive = f
       term.current.writeln('Welcome to the Compliance Research Terminal');
       term.current.writeln('Type `help` to see available commands.');
 
-      term.current.onData(data => {
+      term.current.onData((data) => {
         if (interactive) {
           handleInput(data);
         }
@@ -94,181 +93,287 @@ const MarketDataTerminal: React.FC<MarketDataTerminalProps> = ({ interactive = f
   }> = {
     help: {
       description: 'Show available commands',
-      response: () => {
+      response: (): CommandResponse[] => {
         return [
-          { type: 'text', content: 'Available commands:\n' },
-          ...Object.entries(commands).map(([command, { description }]) => ({
+          {
             type: 'text',
-            content: `- ${command}: ${description}\n`,
-          })),
+            content: 'Available commands:\n'
+          },
+          ...Object.entries(commands).map(([command, { description }]) => ({
+            type: 'text' as const,
+            content: `- ${command}: ${description}\n`
+          }))
         ];
-      },
+      }
     },
     clear: {
       description: 'Clear the terminal',
-      response: () => {
+      response: (): CommandResponse[] => {
         term.current?.clear();
         return [];
-      },
+      }
     },
     market: {
       description: 'Get market analysis insights',
-      response: () => {
+      response: (): CommandResponse[] => {
         return [
-          { type: 'text', content: 'Market analysis insights:\n' },
-          { type: 'text', content: '- Global compliance market is growing rapidly.\n' },
-          { type: 'text', content: '- Key regions: North America, Europe, Asia-Pacific.\n' },
+          {
+            type: 'text',
+            content: 'Market analysis insights:\n'
+          },
+          {
+            type: 'text',
+            content: '- Global compliance market is growing rapidly.\n'
+          },
+          {
+            type: 'text',
+            content: '- Key regions: North America, Europe, Asia-Pacific.\n'
+          }
         ];
-      },
+      }
     },
     growth: {
       description: 'Display growth forecasts',
-      response: () => {
+      response: (): CommandResponse[] => {
         return [
-          { type: 'text', content: 'Growth forecasts:\n' },
-          { type: 'text', content: '- Expected CAGR of 10-15% over the next 5 years.\n' },
-          { type: 'text', content: '- Driven by increasing regulatory complexity.\n' },
+          {
+            type: 'text',
+            content: 'Growth forecasts:\n'
+          },
+          {
+            type: 'text',
+            content: '- Expected CAGR of 10-15% over the next 5 years.\n'
+          },
+          {
+            type: 'text',
+            content: '- Driven by increasing regulatory complexity.\n'
+          }
         ];
-      },
+      }
     },
     regulations: {
       description: 'List key compliance regulations',
-      response: () => {
+      response: (): CommandResponse[] => {
         return [
-          { type: 'text', content: 'Key compliance regulations:\n' },
-          { type: 'text', content: '- GDPR, CCPA, HIPAA, SOX.\n' },
-          { type: 'text', content: '- PSD2, MiFID II, Basel III.\n' },
+          {
+            type: 'text',
+            content: 'Key compliance regulations:\n'
+          },
+          {
+            type: 'text',
+            content: '- GDPR, CCPA, HIPAA, SOX.\n'
+          },
+          {
+            type: 'text',
+            content: '- PSD2, MiFID II, Basel III.\n'
+          }
         ];
-      },
+      }
     },
     competitors: {
       description: 'Show major competitors in the market',
-      response: () => {
+      response: (): CommandResponse[] => {
         return [
-          { type: 'text', content: 'Major competitors:\n' },
-          { type: 'text', content: '- Thomson Reuters, Wolters Kluwer, SAI Global.\n' },
-          { type: 'text', content: '- MetricStream, NAVEX Global, LogicManager.\n' },
+          {
+            type: 'text',
+            content: 'Major competitors:\n'
+          },
+          {
+            type: 'text',
+            content: '- Thomson Reuters, Wolters Kluwer, SAI Global.\n'
+          },
+          {
+            type: 'text',
+            content: '- MetricStream, NAVEX Global, LogicManager.\n'
+          }
         ];
-      },
+      }
     },
     roi: {
       description: 'Explain ROI of compliance software',
-      response: () => {
+      response: (): CommandResponse[] => {
         return [
-          { type: 'text', content: 'ROI of compliance software:\n' },
-          { type: 'text', content: '- Reduced risk of fines and penalties.\n' },
-          { type: 'text', content: '- Improved operational efficiency.\n' },
+          {
+            type: 'text',
+            content: 'ROI of compliance software:\n'
+          },
+          {
+            type: 'text',
+            content: '- Reduced risk of fines and penalties.\n'
+          },
+          {
+            type: 'text',
+            content: '- Improved operational efficiency.\n'
+          }
         ];
-      },
+      }
     },
     reports: {
       description: 'Show available compliance reports',
-      response: () => {
+      response: (): CommandResponse[] => {
         return [
-          { type: 'text', content: '=== Available Compliance Reports ===\n' },
-          { type: 'text', content: '> Germany Market Analysis: GDPR, NIS2, LkSG, IT Security Act 2.0\n' },
-          { 
-            type: 'link', 
-            content: 'View full report: /reports/germany-market-analysis\n', 
-            url: '/reports/germany-market-analysis' 
+          {
+            type: 'text',
+            content: '=== Available Compliance Reports ===\n'
           },
-          { type: 'text', content: '\nAdditional reports available in Reports section.' },
+          {
+            type: 'text',
+            content: '> Germany Market Analysis: GDPR, NIS2, LkSG, IT Security Act 2.0\n'
+          },
+          {
+            type: 'link',
+            content: 'View full report: /reports/germany-market-analysis\n',
+            url: '/reports/germany-market-analysis'
+          },
+          {
+            type: 'text',
+            content: '\nAdditional reports available in Reports section.'
+          }
         ];
       }
-    },
+    }
   };
 
   const handleInput = (data: string) => {
-    const keyCode = data.charCodeAt(0);
-
-    if (keyCode === 13) { // Enter key
-      term.current?.writeln('');
-      processCommand(currentCommand);
-      setCommandHistory(prevHistory => [currentCommand, ...prevHistory]);
-      setHistoryIndex(-1);
-      setCurrentCommand('');
-    } else if (keyCode === 8) { // Backspace key
+    const charCode = data.charCodeAt(0);
+    if (charCode === 13) { // Enter key
+      processCommand();
+    } else if (charCode === 127) { // Backspace key
       if (currentCommand.length > 0) {
         term.current?.write('\b \b');
-        setCurrentCommand(prevCommand => prevCommand.slice(0, -1));
+        setCurrentCommand(currentCommand.slice(0, -1));
       }
-    } else if (keyCode === 27) { // Escape key - Handle ANSI escape sequences
-      // For simplicity, ignore ANSI escape sequences in this example
-    } else if (keyCode === 9) { // Tab key
-      // Implement tab completion if needed
-    } else if (keyCode === 38) { // Up arrow key
-      if (commandHistory.length > 0) {
+    } else if (charCode === 27) { // Escape key (handle arrow keys)
+      // Arrow key sequences are typically ESC + [ + A/B/C/D
+      // We need to buffer these and handle them together
+    } else if (charCode === 9) { // Tab key
+      // Prevent default tab behavior
+      // You can implement tab completion here if desired
+    } else if (charCode === 3) { // Ctrl+C
+      term.current?.write('^C');
+      term.current?.write('\r\n');
+      printPrompt();
+      setCurrentCommand('');
+    }
+    else if (charCode === 27) {
+      // Handle arrow keys
+      if (data === '\x1b[A') { // Up arrow
         if (historyIndex < commandHistory.length - 1) {
-          setHistoryIndex(prevIndex => prevIndex + 1);
-          const command = commandHistory[historyIndex + 1];
-          setCurrentCommand(command);
-          // Clear the current input line
-          for (let i = 0; i < currentCommand.length; i++) {
-            term.current?.write('\b \b');
-          }
-          // Write the history command
+          const newIndex = Math.min(historyIndex + 1, commandHistory.length - 1);
+          setHistoryIndex(newIndex);
+          const command = commandHistory[commandHistory.length - 1 - newIndex];
+          clearCurrentInput();
           term.current?.write(command);
-        }
-      }
-    } else if (keyCode === 40) { // Down arrow key
-      if (historyIndex >= 0) {
-        setHistoryIndex(prevIndex => prevIndex - 1);
-        if (historyIndex === 0) {
-          setCurrentCommand('');
-          // Clear the current input line
-          for (let i = 0; i < currentCommand.length; i++) {
-            term.current?.write('\b \b');
-          }
-        } else {
-          const command = commandHistory[historyIndex - 1];
           setCurrentCommand(command);
-           // Clear the current input line
-           for (let i = 0; i < currentCommand.length; i++) {
-            term.current?.write('\b \b');
-          }
-          // Write the history command
-          term.current?.write(command);
         }
+      } else if (data === '\x1b[B') { // Down arrow
+        if (historyIndex > -1) {
+          const newIndex = Math.max(historyIndex - 1, -1);
+          setHistoryIndex(newIndex);
+          clearCurrentInput();
+          if (newIndex === -1) {
+            setCurrentCommand('');
+          } else {
+            const command = commandHistory[commandHistory.length - 1 - newIndex];
+            term.current?.write(command);
+            setCurrentCommand(command);
+          }
+        }
+      } else {
+        term.current?.write(data);
+        setCurrentCommand(currentCommand + data);
       }
     }
     else {
       term.current?.write(data);
-      setCurrentCommand(prevCommand => prevCommand + data);
+      setCurrentCommand(currentCommand + data);
     }
   };
 
-  const processCommand = (command: string) => {
-    const cmd = command.trim();
-    if (cmd === '') return;
+  const clearCurrentInput = () => {
+    for (let i = 0; i < currentCommand.length; i++) {
+      term.current?.write('\b \b');
+    }
+  };
 
-    const commandParts = cmd.split(' ');
-    const baseCommand = commandParts[0];
-    const args = commandParts.slice(1);
+  const printPrompt = () => {
+    term.current?.write('\r\n$ ');
+  };
 
-    if (commands[baseCommand]) {
-      const response = commands[baseCommand].response(args);
-      response.forEach(item => {
-        if (item.type === 'text') {
-          term.current?.write(item.content);
-        } else if (item.type === 'link' && item.url) {
-          // Handle link clicks to navigate within the app
-          const linkContent = item.content;
-          const linkUrl = item.url;
-          
-          // Create interactive link
-          term.current?.write(`\x1b]8;;${linkUrl}\x1b\\${linkContent}\x1b]8;;\x1b\\`);
-          
-          // Alternatively, we could navigate programmatically, but this approach
-          // gives the user more control to click or ignore the link
+  const processCommand = () => {
+    term.current?.write('\r\n');
+    const command = currentCommand.trim();
+    if (command.length === 0) {
+      printPrompt();
+      setCurrentCommand('');
+      return;
+    }
+
+    setCommandHistory(prevHistory => {
+      const newHistory = [...prevHistory, command];
+      return newHistory;
+    });
+    setHistoryIndex(-1);
+
+    const [baseCommand, ...args] = command.split(' ');
+    const cmd = commands[baseCommand];
+
+    if (cmd) {
+      const responses = cmd.response(args);
+      responses.forEach(response => {
+        if (response.type === 'text') {
+          term.current?.write(response.content);
+        } else if (response.type === 'link' && response.url) {
+          // Use a regular expression to find the text to underline
+          const match = response.content.match(/(.*): (.*)/);
+          if (match) {
+            const [, beforeLink, linkText] = match;
+            term.current?.write(beforeLink + ': ');
+            // Save cursor position
+            const cursorX = term.current?._core.buffer.x;
+            const cursorY = term.current?._core.buffer.y;
+
+            // Write the link text with underline
+            term.current?.write('\x1b[4m' + linkText + '\x1b[0m');
+
+            // Position the invisible link
+            const linkElement = document.createElement('a');
+            linkElement.href = response.url;
+            linkElement.style.position = 'absolute';
+            linkElement.style.left = `${cursorX! * 8 + 10}px`; // Adjust position as needed
+            linkElement.style.top = `${cursorY! * 16 + 50}px`; // Adjust position as needed
+            linkElement.style.width = `${linkText.length * 8}px`; // Adjust width as needed
+            linkElement.style.height = '16px'; // Adjust height as needed
+            linkElement.style.opacity = '0';
+            linkElement.onclick = (e) => {
+              e.preventDefault();
+              navigate(response.url!);
+            };
+            term.current?.element?.appendChild(linkElement);
+            term.current?.write('\r\n');
+          } else {
+            term.current?.write(response.content);
+          }
         }
       });
     } else {
-      term.current?.writeln(`Command not found: ${cmd}`);
+      term.current?.write(`Command not found: ${command}\r\n`);
     }
+
+    printPrompt();
+    setCurrentCommand('');
   };
 
   return (
-    <div className={className} style={{ backgroundColor: '#0c1427', border: '1px solid #3498db', borderRadius: '8px', padding: '10px' }}>
+    <div 
+      className={className}
+      style={{
+        backgroundColor: '#0c1427',
+        border: '1px solid #3498db',
+        borderRadius: '8px',
+        padding: '10px'
+      }}
+    >
       <div ref={terminalRef} />
     </div>
   );
