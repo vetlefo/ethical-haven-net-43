@@ -21,6 +21,7 @@ export const apiRoutes = {
   // Public routes
   reports: '/api/reports',
   reportDetail: '/api/report-detail',
+  searchRag: '/api/search-rag',
 };
 
 export default supabase;

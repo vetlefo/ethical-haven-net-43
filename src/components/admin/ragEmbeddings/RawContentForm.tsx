@@ -2,9 +2,10 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, Database } from 'lucide-react';
+import { Loader2, Database, AlertCircle } from 'lucide-react';
 import ApiKeyInput from '../shared/ApiKeyInput';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface RawContentFormProps {
   geminiApiKey: string;
@@ -29,6 +30,21 @@ const RawContentForm: React.FC<RawContentFormProps> = ({
 }) => {
   return (
     <div className="space-y-6 text-cyber-light">
+      <Alert className="bg-cyber-dark border-cyber-blue">
+        <AlertCircle className="h-4 w-4 text-cyber-blue" />
+        <AlertDescription className="text-cyber-light">
+          You'll need a Gemini API key to process content. You can get one from the{' '}
+          <a 
+            href="https://ai.google.dev/" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-cyber-blue underline hover:text-cyber-blue/80"
+          >
+            Google AI Developer Portal
+          </a>
+        </AlertDescription>
+      </Alert>
+      
       <ApiKeyInput
         value={geminiApiKey}
         onChange={setGeminiApiKey}

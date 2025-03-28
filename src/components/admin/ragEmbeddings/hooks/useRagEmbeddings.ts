@@ -1,9 +1,10 @@
+
 import { useState } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
 export const useRagEmbeddings = () => {
-  const [apiKey, setApiKey] = useState('');
+  const [apiKey, setApiKey] = useState('compliance-admin-key-2023');
   const [geminiApiKey, setGeminiApiKey] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -127,25 +128,22 @@ export const useRagEmbeddings = () => {
       // Parse the JSON input
       const contentData = JSON.parse(processedContent);
       
-      // Determine the endpoint based on content type
-      const endpoint = contentType === 'competitive-intel' 
-        ? '/api/admin-competitive-intel' 
-        : '/api/admin-rag-embeddings';
-      
-      // Submit the processed content
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Admin-Key': apiKey,
-        },
-        body: JSON.stringify(contentData),
-      });
-      
-      const result = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to submit content');
+      // Determine the endpoint and invoke the appropriate function
+      if (contentType === 'competitive-intel') {
+        await supabase.functions.invoke('admin-competitive-intel', {
+          body: contentData,
+          headers: {
+            'Admin-Key': apiKey,
+          }
+        });
+      } else {
+        // For RAG embeddings
+        await supabase.functions.invoke('admin-rag-embeddings', {
+          body: contentData,
+          headers: {
+            'Admin-Key': apiKey,
+          }
+        });
       }
       
       toast({
@@ -153,6 +151,7 @@ export const useRagEmbeddings = () => {
         description: contentType === 'competitive-intel'
           ? 'Competitive intelligence data has been saved to the database'
           : 'Content has been processed and added to the RAG database',
+        variant: 'default',
       });
       
       // Clear processed content after successful submission
