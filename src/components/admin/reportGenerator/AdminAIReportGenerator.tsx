@@ -22,7 +22,8 @@ const AdminAIReportGenerator: React.FC = () => {
     isValid,
     handleGenerate,
     handleReportChange,
-    handleSubmit
+    handleSubmit,
+    validateGeminiApiKey
   } = useReportGeneration({ setActiveTab });
 
   return (
@@ -48,6 +49,7 @@ const AdminAIReportGenerator: React.FC = () => {
               setPrompt={setPrompt}
               isGenerating={isGenerating}
               onGenerate={handleGenerate}
+              validateGeminiApiKey={validateGeminiApiKey}
             />
           </TabsContent>
           

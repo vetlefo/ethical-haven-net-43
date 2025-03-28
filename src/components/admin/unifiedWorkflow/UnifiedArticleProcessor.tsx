@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { AlertCircle, FileText, Loader2 } from 'lucide-react';
@@ -32,7 +32,27 @@ const UnifiedArticleProcessor: React.FC<UnifiedArticleProcessorProps> = ({
     processingStep,
     processStatus,
     handleProcess,
+    validateGeminiApiKey
   } = useUnifiedWorkflow(geminiApiKey);
+
+  // Auto-validate key when component loads and key is present
+  useEffect(() => {
+    if (geminiApiKey && validateGeminiApiKey) {
+      validateGeminiApiKey(geminiApiKey)
+        .then(isValid => {
+          if (!isValid) {
+            toast({
+              title: "Invalid Gemini API Key",
+              description: "The saved API key is invalid or expired. Please update it.",
+              variant: "destructive"
+            });
+          }
+        })
+        .catch(error => {
+          console.error("Error validating Gemini API key:", error);
+        });
+    }
+  }, [geminiApiKey, validateGeminiApiKey]);
 
   return (
     <Card className="w-full mx-auto bg-black/90 border-cyber-blue/30">
@@ -46,7 +66,7 @@ const UnifiedArticleProcessor: React.FC<UnifiedArticleProcessorProps> = ({
         <Alert className="bg-cyber-dark border-cyber-blue">
           <AlertCircle className="h-4 w-4 text-cyber-blue" />
           <AlertDescription className="text-cyber-light">
-            Using your stored Gemini API key for AI processing. You can update it below if needed.
+            A valid Gemini API key is required for AI processing. You can validate your key using the button below.
           </AlertDescription>
         </Alert>
         
@@ -56,6 +76,7 @@ const UnifiedArticleProcessor: React.FC<UnifiedArticleProcessorProps> = ({
           label="Gemini API Key (Session Only)"
           placeholder="Enter your Gemini API key for this session only"
           description="This key is only stored in your browser for this session and is not saved to our database."
+          validateKey={validateGeminiApiKey}
         />
         
         <ApiKeyInput

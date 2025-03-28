@@ -1,6 +1,7 @@
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface UseReportGenerationProps {
   setActiveTab: (tab: string) => void;
@@ -8,12 +9,41 @@ export interface UseReportGenerationProps {
 
 export const useReportGeneration = ({ setActiveTab }: UseReportGenerationProps) => {
   const [apiKey, setApiKey] = useState('');
-  const [geminiApiKey, setGeminiApiKey] = useState('');
+  const [geminiApiKey, setGeminiApiKey] = useState(() => {
+    // Try to get stored key from sessionStorage
+    return sessionStorage.getItem('geminiApiKey') || '';
+  });
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [prompt, setPrompt] = useState('');
   const [generatedReport, setGeneratedReport] = useState('');
   const [isValid, setIsValid] = useState(false);
+
+  const validateGeminiApiKey = useCallback(async (key: string): Promise<boolean> => {
+    try {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{ text: "Respond with only the word 'valid'" }]
+          }]
+        }),
+      });
+      
+      if (!response.ok) {
+        return false;
+      }
+      
+      const data = await response.json();
+      return !!data.candidates;
+    } catch (error) {
+      console.error('Error validating Gemini API key:', error);
+      return false;
+    }
+  }, []);
 
   const handleGenerate = async () => {
     if (!geminiApiKey.trim()) {
@@ -35,26 +65,38 @@ export const useReportGeneration = ({ setActiveTab }: UseReportGenerationProps) 
     }
 
     try {
+      // Validate the API key first
+      const isKeyValid = await validateGeminiApiKey(geminiApiKey);
+      if (!isKeyValid) {
+        toast({
+          title: 'Invalid Gemini API Key',
+          description: 'The provided API key is invalid. Please check and try again.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
       setIsGenerating(true);
       
-      const response = await fetch('/api/generate-report', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      // Save valid key to sessionStorage
+      sessionStorage.setItem('geminiApiKey', geminiApiKey);
+      
+      const { data, error } = await supabase.functions.invoke('generate-report', {
+        body: {
           geminiApiKey,
           prompt
-        }),
+        }
       });
       
-      const result = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to generate report');
+      if (error) {
+        throw new Error(error.message || 'Failed to generate report');
       }
       
-      setGeneratedReport(result.reportJson);
+      if (!data || data.success === false) {
+        throw new Error(data?.error || 'Failed to generate report');
+      }
+      
+      setGeneratedReport(data.reportJson);
       setIsValid(true);
       setActiveTab('result');
       
@@ -63,7 +105,7 @@ export const useReportGeneration = ({ setActiveTab }: UseReportGenerationProps) 
         description: 'AI has transformed your content into a structured report format',
       });
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error generating report:', error);
       toast({
         title: 'Transformation Error',
@@ -173,6 +215,7 @@ export const useReportGeneration = ({ setActiveTab }: UseReportGenerationProps) 
     isValid,
     handleGenerate,
     handleReportChange,
-    handleSubmit
+    handleSubmit,
+    validateGeminiApiKey
   };
 };

@@ -12,6 +12,7 @@ interface PromptTabProps {
   setPrompt: (prompt: string) => void;
   isGenerating: boolean;
   onGenerate: () => void;
+  validateGeminiApiKey?: (key: string) => Promise<boolean>;
 }
 
 const PromptTab: React.FC<PromptTabProps> = ({
@@ -20,7 +21,8 @@ const PromptTab: React.FC<PromptTabProps> = ({
   prompt,
   setPrompt,
   isGenerating,
-  onGenerate
+  onGenerate,
+  validateGeminiApiKey
 }) => {
   return (
     <div className="space-y-6">
@@ -30,6 +32,7 @@ const PromptTab: React.FC<PromptTabProps> = ({
         label="Gemini API Key (Session Only)"
         placeholder="Enter your Gemini API key for this session only"
         description="This key is only stored in your browser for this session and is not saved to our database."
+        validateKey={validateGeminiApiKey}
       />
       
       <div>

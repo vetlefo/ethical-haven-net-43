@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -28,7 +28,18 @@ const Admin: React.FC = () => {
   ]);
   
   // Store the Gemini API key at the top level so it can be shared with child components
-  const [geminiApiKey, setGeminiApiKey] = useState('');
+  const [geminiApiKey, setGeminiApiKey] = useState(() => {
+    // Try to get stored key from sessionStorage
+    const storedKey = sessionStorage.getItem('geminiApiKey');
+    return storedKey || '';
+  });
+
+  // Save API key to sessionStorage when it changes
+  useEffect(() => {
+    if (geminiApiKey) {
+      sessionStorage.setItem('geminiApiKey', geminiApiKey);
+    }
+  }, [geminiApiKey]);
 
   const executeCommand = async (command: string) => {
     setTerminalLines(prev => [...prev, `$ ${command}`, `Processing command: ${command}...`]);
@@ -43,7 +54,6 @@ const Admin: React.FC = () => {
       return;
     }
     
-    // Check if it's a research command
     try {
       const { data, error } = await supabase.functions.invoke('generate-report', {
         body: {

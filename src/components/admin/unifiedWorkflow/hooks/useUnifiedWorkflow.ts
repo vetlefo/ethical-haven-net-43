@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -7,7 +7,7 @@ export type StepStatus = 'waiting' | 'processing' | 'completed' | 'error';
 
 export const useUnifiedWorkflow = (initialGeminiApiKey: string = '') => {
   const [apiKey, setApiKey] = useState('compliance-admin-key-2023');
-  const [geminiApiKey, setGeminiApiKey] = useState(initialGeminiApiKey);
+  const [geminiApiKey, setGeminiApiKey] = useState(initialGeminiApiKey || '');
   const [rawContent, setRawContent] = useState('');
   const [contentType, setContentType] = useState('compliance');
   
@@ -26,13 +26,46 @@ export const useUnifiedWorkflow = (initialGeminiApiKey: string = '') => {
     });
   };
 
+  // Function to validate the Gemini API key
+  const validateGeminiApiKey = useCallback(async (key: string): Promise<boolean> => {
+    try {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{ text: "Respond with only the word 'valid'" }]
+          }]
+        }),
+      });
+      
+      if (!response.ok) {
+        return false;
+      }
+      
+      const data = await response.json();
+      return !!data.candidates;
+    } catch (error) {
+      console.error('Error validating Gemini API key:', error);
+      return false;
+    }
+  }, []);
+
   // Step 1: Transform the raw content into a structured report
   const transformContent = async (): Promise<string> => {
     setProcessingStep(0);
     updateStepStatus(0, 'processing');
     
     try {
-      // Use the Supabase edge function instead of a direct fetch to the API
+      // First validate the key before proceeding
+      const isKeyValid = await validateGeminiApiKey(geminiApiKey);
+      if (!isKeyValid) {
+        throw new Error('Invalid Gemini API key. Please provide a valid key.');
+      }
+      
+      // Use the Supabase edge function to transform the content
       const { data, error } = await supabase.functions.invoke('generate-report', {
         body: {
           geminiApiKey,
@@ -45,7 +78,7 @@ export const useUnifiedWorkflow = (initialGeminiApiKey: string = '') => {
         throw new Error(error.message || 'Failed to transform content');
       }
       
-      if (!data || !data.success === false) {
+      if (!data || data.success === false) {
         throw new Error(data?.error || 'Failed to transform content');
       }
       
@@ -166,6 +199,17 @@ export const useUnifiedWorkflow = (initialGeminiApiKey: string = '') => {
     }
 
     try {
+      // Validate the Gemini API key before processing
+      const isKeyValid = await validateGeminiApiKey(geminiApiKey);
+      if (!isKeyValid) {
+        toast({
+          title: 'Invalid Gemini API Key',
+          description: 'The provided API key is invalid. Please check and try again.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
       setIsProcessing(true);
       setCurrentStep(0);
       
@@ -214,6 +258,7 @@ export const useUnifiedWorkflow = (initialGeminiApiKey: string = '') => {
     isProcessing,
     processingStep,
     processStatus,
-    handleProcess
+    handleProcess,
+    validateGeminiApiKey
   };
 };

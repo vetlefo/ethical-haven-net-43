@@ -16,6 +16,7 @@ interface RawContentFormProps {
   setContentType: (type: string) => void;
   isProcessing: boolean;
   onProcess: () => void;
+  validateGeminiApiKey?: (key: string) => Promise<boolean>;
 }
 
 const RawContentForm: React.FC<RawContentFormProps> = ({
@@ -26,7 +27,8 @@ const RawContentForm: React.FC<RawContentFormProps> = ({
   contentType,
   setContentType,
   isProcessing,
-  onProcess
+  onProcess,
+  validateGeminiApiKey
 }) => {
   return (
     <div className="space-y-6 text-cyber-light">
@@ -51,6 +53,7 @@ const RawContentForm: React.FC<RawContentFormProps> = ({
         label="Gemini API Key (Session Only)"
         placeholder="Enter your Gemini API key for this session only"
         description="This key is only stored in your browser for this session and is not saved to our database."
+        validateKey={validateGeminiApiKey}
       />
       
       <div>
