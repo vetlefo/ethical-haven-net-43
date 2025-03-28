@@ -3,7 +3,7 @@ import { useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
-import { VisualizationDataPoint } from '@/utils/visualizationData';
+import { VisualizationDataPoint, MarketEntryDataPoint } from '@/utils/visualizationData';
 import { createVisualization } from '@/utils/visualizationUtils';
 
 interface VisualizationModalProps {
@@ -11,7 +11,7 @@ interface VisualizationModalProps {
   onClose: () => void;
   title: string;
   visualizationType: string;
-  data: VisualizationDataPoint[];
+  data: VisualizationDataPoint[] | MarketEntryDataPoint[];
 }
 
 const VisualizationModal = ({

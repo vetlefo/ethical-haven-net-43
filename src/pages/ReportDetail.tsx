@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { ComplianceReport, getReportBySlug } from '@/services/reportService';
 import VisualizationModal from '@/components/VisualizationModal';
-import { painPointsData, marketEntryData } from '@/utils/visualizationData';
+import { painPointsData, marketEntryData, VisualizationDataPoint, MarketEntryDataPoint } from '@/utils/visualizationData';
 import { toast } from '@/hooks/use-toast';
 
 const ReportDetail: React.FC = () => {
@@ -19,7 +19,11 @@ const ReportDetail: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('content');
   const [visualizationOpen, setVisualizationOpen] = useState(false);
-  const [selectedVisualization, setSelectedVisualization] = useState({
+  const [selectedVisualization, setSelectedVisualization] = useState<{
+    title: string;
+    type: string;
+    data: VisualizationDataPoint[] | MarketEntryDataPoint[];
+  }>({
     title: '',
     type: '',
     data: painPointsData

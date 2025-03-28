@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
@@ -329,27 +330,34 @@ const MarketDataTerminal: React.FC<MarketDataTerminalProps> = ({ interactive = f
           if (match) {
             const [, beforeLink, linkText] = match;
             term.current?.write(beforeLink + ': ');
-            // Save cursor position
-            const cursorX = term.current?._core.buffer.x;
-            const cursorY = term.current?._core.buffer.y;
-
+            
             // Write the link text with underline
             term.current?.write('\x1b[4m' + linkText + '\x1b[0m');
 
-            // Position the invisible link
-            const linkElement = document.createElement('a');
-            linkElement.href = response.url;
-            linkElement.style.position = 'absolute';
-            linkElement.style.left = `${cursorX! * 8 + 10}px`; // Adjust position as needed
-            linkElement.style.top = `${cursorY! * 16 + 50}px`; // Adjust position as needed
-            linkElement.style.width = `${linkText.length * 8}px`; // Adjust width as needed
-            linkElement.style.height = '16px'; // Adjust height as needed
-            linkElement.style.opacity = '0';
-            linkElement.onclick = (e) => {
-              e.preventDefault();
-              navigate(response.url!);
-            };
-            term.current?.element?.appendChild(linkElement);
+            // Create a clickable link element
+            if (term.current && term.current.element) {
+              const linkElement = document.createElement('a');
+              linkElement.href = response.url;
+              linkElement.style.position = 'absolute';
+              
+              // Approximate position - we can't use _core anymore
+              const terminalRect = term.current.element.getBoundingClientRect();
+              const charWidth = terminalRect.width / 80; // Approximate character width
+              const lineHeight = 20; // Approximate line height
+              
+              linkElement.style.left = `${charWidth * (beforeLink.length + 2) + 10}px`;
+              linkElement.style.top = `${lineHeight + 10}px`;
+              linkElement.style.width = `${linkText.length * charWidth}px`;
+              linkElement.style.height = `${lineHeight}px`;
+              linkElement.style.opacity = '0';
+              linkElement.onclick = (e) => {
+                e.preventDefault();
+                navigate(response.url!);
+              };
+              
+              term.current.element.appendChild(linkElement);
+            }
+            
             term.current?.write('\r\n');
           } else {
             term.current?.write(response.content);
