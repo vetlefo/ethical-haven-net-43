@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Helmet } from 'react-helmet';
 import Navbar from '@/components/Navbar';
@@ -10,6 +11,7 @@ import Terminal from '@/components/Terminal';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
 
 const Admin: React.FC = () => {
   const [terminalLines, setTerminalLines] = useState<string[]>([
@@ -26,10 +28,20 @@ const Admin: React.FC = () => {
   ]);
   
   // Store the Gemini API key at the top level so it can be shared with child components
-  const [geminiApiKey, setGeminiApiKey] = useState('YOUR_GEMINI_API_KEY');
+  const [geminiApiKey, setGeminiApiKey] = useState('');
 
   const executeCommand = async (command: string) => {
     setTerminalLines(prev => [...prev, `$ ${command}`, `Processing command: ${command}...`]);
+    
+    if (!geminiApiKey) {
+      setTerminalLines(prev => [...prev, `Error: Gemini API key is required. Please set it in the tabs above.`]);
+      toast({
+        title: "API Key Required",
+        description: "Please set your Gemini API key in the tabs above.",
+        variant: "destructive"
+      });
+      return;
+    }
     
     // Check if it's a research command
     try {
@@ -45,7 +57,7 @@ const Admin: React.FC = () => {
       } else if (data) {
         setTerminalLines(prev => [...prev, `Command executed successfully`, `Result: ${JSON.stringify(data, null, 2)}`]);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error executing command:", err);
       setTerminalLines(prev => [...prev, `Error: ${err.message || "Failed to execute command"}`]);
     }

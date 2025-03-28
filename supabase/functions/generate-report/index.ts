@@ -164,6 +164,36 @@ For German companies specifically, focus on:
 The output must be valid JSON that conforms exactly to the schema provided, with no additional commentary.
 `;
 
+// Mock data for testing or fallback
+const fallbackReportJson = JSON.stringify({
+  title: "GDPR Compliance Guide for Tech Companies",
+  slug: "gdpr-compliance-guide-tech-companies",
+  summary: "A comprehensive overview of GDPR requirements for technology companies.",
+  content: {
+    sections: [
+      {
+        title: "Introduction to GDPR",
+        content: "The General Data Protection Regulation (GDPR) is a regulation in EU law on data protection and privacy for all individuals within the European Union. It addresses the export of personal data outside the EU."
+      },
+      {
+        title: "Key Compliance Requirements",
+        content: "GDPR compliance requires implementing several measures including data protection impact assessments, maintaining records of processing activities, and ensuring data subject rights are respected."
+      },
+      {
+        title: "Implementation Steps",
+        content: "Steps to achieve compliance include data mapping, reviewing privacy notices, establishing procedures for handling data subject requests, and implementing appropriate security measures."
+      }
+    ]
+  },
+  country: "Germany",
+  region: "European Union",
+  tags: ["GDPR", "Data Protection", "Compliance", "Privacy"],
+  category: "Regulatory Guide",
+  author: "Compliance Team",
+  read_time: 15,
+  is_featured: true
+});
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -185,6 +215,22 @@ serve(async (req) => {
 
     if (!requestData.prompt) {
       throw new Error('Missing prompt or raw content for report generation');
+    }
+
+    // Validate the Gemini API key format
+    if (!requestData.geminiApiKey.trim() || requestData.geminiApiKey === 'YOUR_GEMINI_API_KEY') {
+      console.error("Invalid Gemini API key provided");
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Invalid Gemini API key. Please provide a valid API key.',
+          reportJson: fallbackReportJson // Provide fallback data for testing
+        }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
     }
 
     // Configure the request to the Gemini API
@@ -210,63 +256,94 @@ serve(async (req) => {
 
     console.log("Sending request to Gemini API for report transformation...");
     
-    // Call the Gemini API
-    const geminiResponse = await fetch(`${geminiApiUrl}?key=${geminiApiKey}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(geminiRequest)
-    });
-    
-    if (!geminiResponse.ok) {
-      const errorText = await geminiResponse.text();
-      console.error("Gemini API error:", errorText);
-      throw new Error(`Gemini API error: ${geminiResponse.status} ${errorText}`);
-    }
-    
-    const geminiData = await geminiResponse.json();
-    console.log("Received response from Gemini API");
-    
-    if (!geminiData.candidates || !geminiData.candidates[0] || !geminiData.candidates[0].content) {
-      throw new Error('Invalid response from Gemini API');
-    }
-    
-    // Extract the generated content
-    const generatedText = geminiData.candidates[0].content.parts[0].text;
-    
-    // Find and extract the JSON object from the response
-    // The AI might wrap the JSON in ```json ``` or other formatting
-    let jsonMatch = generatedText.match(/```json\n([\s\S]*?)\n```/) || 
-                   generatedText.match(/```\n([\s\S]*?)\n```/) || 
-                   generatedText.match(/{[\s\S]*}/);
-                   
-    let reportJson = "";
-    
-    if (jsonMatch) {
-      reportJson = jsonMatch[0].startsWith('```') ? jsonMatch[1] : jsonMatch[0];
-    } else {
-      reportJson = generatedText; // If no pattern matched, use the entire text
-    }
-    
-    // Verify the JSON is valid
     try {
-      JSON.parse(reportJson);
-    } catch (error) {
-      console.error("Invalid JSON in Gemini response:", error);
-      throw new Error('Generated content is not valid JSON');
-    }
-    
-    // Return the generated report JSON
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        reportJson
-      }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      // Call the Gemini API
+      const geminiResponse = await fetch(`${geminiApiUrl}?key=${geminiApiKey}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(geminiRequest)
+      });
+      
+      if (!geminiResponse.ok) {
+        const errorText = await geminiResponse.text();
+        console.error("Gemini API error:", errorText);
+        
+        // If API key is invalid, provide a specific error message
+        if (errorText.includes("API key not valid")) {
+          return new Response(
+            JSON.stringify({ 
+              success: false, 
+              error: 'The Gemini API key provided is not valid. Please check your API key and try again.',
+              reportJson: fallbackReportJson // Provide fallback for testing
+            }),
+            { 
+              status: 400, 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+            }
+          );
+        }
+        
+        throw new Error(`Gemini API error: ${geminiResponse.status} ${errorText}`);
       }
-    );
+      
+      const geminiData = await geminiResponse.json();
+      console.log("Received response from Gemini API");
+      
+      if (!geminiData.candidates || !geminiData.candidates[0] || !geminiData.candidates[0].content) {
+        throw new Error('Invalid response from Gemini API');
+      }
+      
+      // Extract the generated content
+      const generatedText = geminiData.candidates[0].content.parts[0].text;
+      
+      // Find and extract the JSON object from the response
+      // The AI might wrap the JSON in ```json ``` or other formatting
+      let jsonMatch = generatedText.match(/```json\n([\s\S]*?)\n```/) || 
+                     generatedText.match(/```\n([\s\S]*?)\n```/) || 
+                     generatedText.match(/{[\s\S]*}/);
+                     
+      let reportJson = "";
+      
+      if (jsonMatch) {
+        reportJson = jsonMatch[0].startsWith('```') ? jsonMatch[1] : jsonMatch[0];
+      } else {
+        reportJson = generatedText; // If no pattern matched, use the entire text
+      }
+      
+      // Verify the JSON is valid
+      try {
+        JSON.parse(reportJson);
+      } catch (error) {
+        console.error("Invalid JSON in Gemini response:", error);
+        throw new Error('Generated content is not valid JSON');
+      }
+      
+      // Return the generated report JSON
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          reportJson
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    } catch (geminiError) {
+      console.error('Error calling Gemini API:', geminiError);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: geminiError.message || 'Failed to call Gemini API',
+          reportJson: fallbackReportJson // Provide fallback for testing
+        }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
     
   } catch (error) {
     console.error('Error processing request:', error);
@@ -274,7 +351,8 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error.message 
+        error: error.message,
+        reportJson: fallbackReportJson // Provide fallback for testing 
       }),
       { 
         status: 400, 

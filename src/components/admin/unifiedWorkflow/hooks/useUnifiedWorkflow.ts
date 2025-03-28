@@ -45,13 +45,17 @@ export const useUnifiedWorkflow = (initialGeminiApiKey: string = '') => {
         throw new Error(error.message || 'Failed to transform content');
       }
       
-      if (!data || !data.reportJson) {
-        throw new Error('No data returned from the function or missing reportJson');
+      if (!data || !data.success === false) {
+        throw new Error(data?.error || 'Failed to transform content');
+      }
+      
+      if (!data.reportJson) {
+        throw new Error('No report data returned from the function');
       }
       
       updateStepStatus(0, 'completed');
       return data.reportJson;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error transforming content:', error);
       updateStepStatus(0, 'error');
       throw error;
@@ -83,7 +87,7 @@ export const useUnifiedWorkflow = (initialGeminiApiKey: string = '') => {
       
       updateStepStatus(1, 'completed');
       return data.processedContent;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error processing for RAG:', error);
       updateStepStatus(1, 'error');
       throw error;
@@ -100,24 +104,32 @@ export const useUnifiedWorkflow = (initialGeminiApiKey: string = '') => {
       const contentData = JSON.parse(processedContent);
       
       if (contentType === 'competitive-intel') {
-        await supabase.functions.invoke('admin-competitive-intel', {
+        const { error } = await supabase.functions.invoke('admin-competitive-intel', {
           body: contentData,
           headers: {
             'Admin-Key': apiKey,
           }
         });
+        
+        if (error) {
+          throw new Error(error.message || 'Failed to store competitive intelligence data');
+        }
       } else {
         // For RAG embeddings
-        await supabase.functions.invoke('admin-rag-embeddings', {
+        const { error } = await supabase.functions.invoke('admin-rag-embeddings', {
           body: contentData,
           headers: {
             'Admin-Key': apiKey,
           }
         });
+        
+        if (error) {
+          throw new Error(error.message || 'Failed to store RAG embeddings');
+        }
       }
       
       updateStepStatus(2, 'completed');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error storing in database:', error);
       updateStepStatus(2, 'error');
       throw error;
@@ -177,7 +189,7 @@ export const useUnifiedWorkflow = (initialGeminiApiKey: string = '') => {
         variant: 'default',
       });
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error in unified workflow:', error);
       toast({
         title: 'Error',
