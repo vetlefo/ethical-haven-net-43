@@ -33,6 +33,10 @@ export const useUnifiedWorkflow = (initialGeminiApiKey: string) => {
   
   // Handle process with current state values
   const processContent = async () => {
+    if (!isKeyValidated) {
+      console.error("Cannot process: API key not validated");
+      return;
+    }
     await handleProcess(apiKey, geminiApiKey);
   };
 

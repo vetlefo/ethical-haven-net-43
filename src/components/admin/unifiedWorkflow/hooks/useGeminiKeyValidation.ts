@@ -8,6 +8,13 @@ export const useGeminiKeyValidation = (initialGeminiApiKey: string) => {
   const [validationInProgress, setValidationInProgress] = useState(false);
   const validationLockRef = useRef(false);
 
+  // Reset validation status when key changes
+  useEffect(() => {
+    if (geminiApiKey !== initialGeminiApiKey) {
+      setIsKeyValidated(false);
+    }
+  }, [geminiApiKey, initialGeminiApiKey]);
+
   // Validate the Gemini API key
   const validateGeminiApiKey = async (key: string): Promise<boolean> => {
     // Prevent multiple concurrent validations using both state and ref
@@ -64,21 +71,12 @@ export const useGeminiKeyValidation = (initialGeminiApiKey: string) => {
     }
   };
 
-  // Effect to validate key once when it's provided initially, with debounce
+  // Only automatically validate on initial mount, not on every key change
   useEffect(() => {
-    let debounceTimeout: NodeJS.Timeout;
-    
     if (geminiApiKey && !isKeyValidated && !validationInProgress && !validationLockRef.current) {
-      // Debounce validation to prevent multiple rapid validations
-      debounceTimeout = setTimeout(() => {
-        validateGeminiApiKey(geminiApiKey);
-      }, 500);
+      validateGeminiApiKey(geminiApiKey);
     }
-    
-    return () => {
-      if (debounceTimeout) clearTimeout(debounceTimeout);
-    };
-  }, [geminiApiKey, isKeyValidated, validationInProgress]);
+  }, []); // Empty dependency array ensures this runs only once on mount
 
   return {
     geminiApiKey,

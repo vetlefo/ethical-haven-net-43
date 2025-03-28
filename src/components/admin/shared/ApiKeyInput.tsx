@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -24,56 +24,21 @@ const ApiKeyInput: React.FC<ApiKeyInputProps> = ({
   const [isValidating, setIsValidating] = useState(false);
   const [isValid, setIsValid] = useState<boolean | null>(null);
   const [showKey, setShowKey] = useState(false);
-  const [autoValidationComplete, setAutoValidationComplete] = useState(false);
-  const [validationLock, setValidationLock] = useState(false);
-
-  useEffect(() => {
-    // When value changes, reset validation status
-    if (validateKey && value) {
-      setIsValid(null);
-    }
-  }, [value, validateKey]);
-
-  useEffect(() => {
-    // Auto-validate on component mount if value exists and validation function provided
-    const autoValidate = async () => {
-      if (validateKey && value && !autoValidationComplete && !validationLock) {
-        setValidationLock(true);
-        setIsValidating(true);
-        try {
-          const valid = await validateKey(value);
-          setIsValid(valid);
-        } catch (error) {
-          console.error('Auto validation error:', error);
-          setIsValid(false);
-        } finally {
-          setIsValidating(false);
-          setAutoValidationComplete(true);
-          setValidationLock(false);
-        }
-      }
-    };
-    
-    autoValidate();
-  }, [validateKey, value, autoValidationComplete, validationLock]);
 
   const handleValidate = async () => {
-    if (!validateKey || !value.trim() || validationLock) return;
+    if (!validateKey || !value.trim() || isValidating) return;
     
-    setValidationLock(true);
     setIsValidating(true);
     setIsValid(null);
     
     try {
       const valid = await validateKey(value.trim());
       setIsValid(valid);
-      setAutoValidationComplete(true);
     } catch (error) {
       console.error('Validation error:', error);
       setIsValid(false);
     } finally {
       setIsValidating(false);
-      setValidationLock(false);
     }
   };
 
@@ -87,7 +52,11 @@ const ApiKeyInput: React.FC<ApiKeyInputProps> = ({
           <Input
             type={showKey ? "text" : "password"}
             value={value}
-            onChange={(e) => onChange(e.target.value)}
+            onChange={(e) => {
+              onChange(e.target.value);
+              // Reset validation status when key changes
+              if (isValid !== null) setIsValid(null);
+            }}
             placeholder={placeholder}
             className={`w-full pr-10 bg-cyber-slate border-cyber-blue/30 text-cyber-light ${
               isValid === true ? "border-green-500" : isValid === false ? "border-red-500" : ""

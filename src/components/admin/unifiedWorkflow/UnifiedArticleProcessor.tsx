@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { AlertCircle, FileText, Loader2 } from 'lucide-react';
@@ -36,34 +36,26 @@ const UnifiedArticleProcessor: React.FC<UnifiedArticleProcessorProps> = ({
     isKeyValidated
   } = useUnifiedWorkflow(geminiApiKey);
 
-  // Track whether we've already attempted validation to prevent infinite re-validations
-  const [validationAttempted, setValidationAttempted] = useState(false);
-  const validationInProgressRef = useRef(false);
+  // Track when manual validation has been attempted
+  const [manualValidationAttempted, setManualValidationAttempted] = useState(false);
 
-  // Auto-validate key when component loads if key is present and we haven't attempted validation yet
-  useEffect(() => {
-    if (geminiApiKey && validateGeminiApiKey && !isKeyValidated && !validationAttempted && !validationInProgressRef.current) {
-      setValidationAttempted(true); // Mark validation as attempted
-      validationInProgressRef.current = true;
-      
-      validateGeminiApiKey(geminiApiKey)
-        .then(isValid => {
-          if (!isValid) {
-            toast({
-              title: "Invalid Gemini API Key",
-              description: "The saved API key is invalid or expired. Please update it.",
-              variant: "destructive"
-            });
-          }
-        })
-        .catch(error => {
-          console.error("Error validating Gemini API key:", error);
-        })
-        .finally(() => {
-          validationInProgressRef.current = false;
-        });
+  // Handle manual key validation
+  const handleManualValidation = async () => {
+    setManualValidationAttempted(true);
+    const isValid = await validateGeminiApiKey(geminiApiKey);
+    if (!isValid) {
+      toast({
+        title: "Invalid Gemini API Key",
+        description: "The API key provided is invalid. Please check and try again.",
+        variant: "destructive"
+      });
+    } else {
+      toast({
+        title: "API Key Validated",
+        description: "Your Gemini API key has been validated successfully.",
+      });
     }
-  }, [geminiApiKey, validateGeminiApiKey, isKeyValidated, validationAttempted]);
+  };
 
   return (
     <Card className="w-full mx-auto bg-black/90 border-cyber-blue/30">
@@ -77,7 +69,7 @@ const UnifiedArticleProcessor: React.FC<UnifiedArticleProcessorProps> = ({
         <Alert className="bg-cyber-dark border-cyber-blue">
           <AlertCircle className="h-4 w-4 text-cyber-blue" />
           <AlertDescription className="text-cyber-light">
-            A valid Gemini API key is required for AI processing. You can validate your key using the button below.
+            A valid Gemini API key is required for AI processing. Please validate your key using the button below.
           </AlertDescription>
         </Alert>
         
@@ -85,7 +77,6 @@ const UnifiedArticleProcessor: React.FC<UnifiedArticleProcessorProps> = ({
           value={geminiApiKey}
           onChange={(value) => {
             setGeminiApiKey(value);
-            setValidationAttempted(false); // Reset validation flag when key changes
           }}
           label="Gemini API Key (Session Only)"
           placeholder="Enter your Gemini API key for this session only"
@@ -158,7 +149,7 @@ const UnifiedArticleProcessor: React.FC<UnifiedArticleProcessorProps> = ({
           type="button" 
           onClick={handleProcess}
           className="w-full bg-cyber-blue hover:bg-cyber-blue/80" 
-          disabled={isProcessing}
+          disabled={isProcessing || !isKeyValidated}
         >
           {isProcessing ? (
             <>
@@ -167,6 +158,8 @@ const UnifiedArticleProcessor: React.FC<UnifiedArticleProcessorProps> = ({
               {processingStep === 1 && "Processing for RAG..."}
               {processingStep === 2 && "Storing in Database..."}
             </>
+          ) : !isKeyValidated ? (
+            "Please validate your API key first"
           ) : (
             <>
               <FileText className="mr-2 h-4 w-4" />
