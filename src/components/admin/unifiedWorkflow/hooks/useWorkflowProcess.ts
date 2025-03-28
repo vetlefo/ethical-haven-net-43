@@ -35,6 +35,18 @@ export const useWorkflowProcess = () => {
     }
 
     try {
+      // Get authentication token
+      const authToken = await supabase.auth.getSession().then(res => res.data.session?.access_token);
+      if (!authToken) {
+        toast({
+          title: 'Authentication Required',
+          description: 'Please log in to process content',
+          variant: 'destructive',
+        });
+        TerminalStore.addLine(`Error: Authentication required for content processing`);
+        return;
+      }
+      
       setIsProcessing(true);
       setProcessStatus(['processing', 'waiting', 'waiting']);
       setCurrentStep(1);
@@ -43,43 +55,68 @@ export const useWorkflowProcess = () => {
       // Step 1: Transform content
       TerminalStore.addLine(`Starting unified workflow process for ${contentType} content...`);
       TerminalStore.addLine(`Step 1: Transforming raw content...`);
+      TerminalStore.addLine(`Content length: ${rawContent.length} characters`);
+      TerminalStore.addLine(`Using auth token: ${authToken.substring(0, 15)}...`);
       
       const { data: transformData, error: transformError } = await supabase.functions.invoke('generate-report', {
         body: {
           content: rawContent,
           contentType
+        },
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json'
         }
       });
       
       if (transformError) {
+        TerminalStore.addLine(`Transformation error: ${transformError.message}`);
         throw new Error(`Transformation error: ${transformError.message}`);
       }
       
       if (!transformData || transformData.success === false) {
+        TerminalStore.addLine(`Transformation failed: ${transformData?.error || 'Unknown error'}`);
         throw new Error(transformData?.error || 'Failed to transform content');
       }
       
       const reportJson = transformData.reportJson;
       TerminalStore.addLine(`Content transformation completed successfully`);
       
-      const parsedReport = JSON.parse(reportJson);
-      TerminalStore.addLine(`Generated report with title: "${parsedReport.title}"`);
+      let parsedReport;
+      try {
+        parsedReport = JSON.parse(reportJson);
+        TerminalStore.addLine(`Generated report with title: "${parsedReport.title}"`);
+      } catch (parseError) {
+        TerminalStore.addLine(`Error parsing report JSON: ${parseError.message}`);
+        TerminalStore.addLine(`Raw JSON: ${reportJson.substring(0, 100)}...`);
+        throw new Error(`Failed to parse report JSON: ${parseError.message}`);
+      }
       
-      // Step 2: Store the report directly (skip RAG processing for now)
+      // Add the is_rag_enabled flag to the report
+      parsedReport.is_rag_enabled = true;
+      
+      // Step 2: Store the report directly
       setProcessStatus(['completed', 'processing', 'waiting']);
       setProcessingStep(1);
       setCurrentStep(2);
       
       TerminalStore.addLine(`Step 2: Storing report in database...`);
+      TerminalStore.addLine(`Report has is_rag_enabled flag set to: ${parsedReport.is_rag_enabled}`);
       
       const { data: storeData, error: storeError } = await supabase.functions.invoke('store-report', {
-        body: parsedReport
+        body: parsedReport,
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json'
+        }
       });
       
       if (storeError) {
         TerminalStore.addLine(`Storage error: ${storeError.message}`);
         throw new Error(`Storage error: ${storeError.message}`);
       }
+      
+      TerminalStore.addLine(`Report stored successfully in database`);
       
       // Step 3: Process for RAG (optional)
       setProcessStatus(['completed', 'completed', 'processing']);
@@ -92,6 +129,10 @@ export const useWorkflowProcess = () => {
         body: {
           content: reportJson,
           contentType
+        },
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json'
         }
       });
       

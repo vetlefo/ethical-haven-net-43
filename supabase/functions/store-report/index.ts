@@ -158,6 +158,29 @@ serve(async (req) => {
 
     console.log('Inserting report into database');
 
+    // First, let's run the migration to ensure the column exists
+    const { error: migrationError } = await supabase.rpc('pg_extension', { 
+      query: `
+        DO $$
+        BEGIN
+            IF NOT EXISTS (
+                SELECT FROM information_schema.columns 
+                WHERE table_schema = 'public'
+                AND table_name = 'compliance_reports'
+                AND column_name = 'is_rag_enabled'
+            ) THEN
+                ALTER TABLE public.compliance_reports
+                ADD COLUMN is_rag_enabled BOOLEAN DEFAULT FALSE;
+            END IF;
+        END $$;
+      `
+    });
+
+    if (migrationError) {
+      console.error('Migration error:', migrationError);
+      // Continue anyway, as we'll handle the case if the column doesn't exist
+    }
+
     // Insert the report into the database
     const { data, error } = await supabase
       .from('compliance_reports')
