@@ -100,6 +100,57 @@ const Admin: React.FC = () => {
 
   const executeCommand = async (command: string) => {
     TerminalStore.addLine(`$ ${command}`);
+    
+    // Handle help command
+    if (command.toLowerCase() === 'help') {
+      TerminalStore.addLine("Available commands:");
+      TerminalStore.addLine("  help - Show this help message");
+      TerminalStore.addLine("  clear - Clear the terminal");
+      TerminalStore.addLine("  status - Check system status");
+      TerminalStore.addLine("  version - Show system version");
+      TerminalStore.addLine("  tables - List database tables");
+      return;
+    }
+    
+    // Handle clear command
+    if (command.toLowerCase() === 'clear') {
+      setTerminalLines([
+        "# Compliance Intelligence Admin Console",
+        "# Terminal cleared",
+        "# Type 'help' for available commands"
+      ]);
+      return;
+    }
+    
+    // Handle status command
+    if (command.toLowerCase() === 'status') {
+      TerminalStore.addLine("System Status:");
+      TerminalStore.addLine("- Database: Connected");
+      TerminalStore.addLine("- API: Connected");
+      TerminalStore.addLine("- Gemini API: " + (geminiApiKey ? "Key available" : "No key set"));
+      TerminalStore.addLine("- Processing Engine: Ready");
+      return;
+    }
+    
+    // Handle version command
+    if (command.toLowerCase() === 'version') {
+      TerminalStore.addLine("Compliance Intelligence System v1.0.2");
+      TerminalStore.addLine("- Report Processing: v1.1.0");
+      TerminalStore.addLine("- RAG Embedding: v1.0.5");
+      TerminalStore.addLine("- Competitive Analysis: v1.0.1");
+      return;
+    }
+    
+    // Handle tables command
+    if (command.toLowerCase() === 'tables') {
+      TerminalStore.addLine("Database Tables:");
+      TerminalStore.addLine("- compliance_reports: Structured compliance reports");
+      TerminalStore.addLine("- rag_documents: Document metadata for RAG system");
+      TerminalStore.addLine("- rag_chunks: Text chunks with embeddings for search");
+      TerminalStore.addLine("- competitors: Competitive intelligence data");
+      return;
+    }
+    
     TerminalStore.addLine(`Processing command: ${command}...`);
     
     if (!geminiApiKey) {

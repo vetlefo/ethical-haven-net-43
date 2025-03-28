@@ -31,6 +31,8 @@ serve(async (req) => {
     // Verify admin API key
     const providedAdminKey = req.headers.get('Admin-Key');
     if (!providedAdminKey || providedAdminKey !== adminKey) {
+      console.error("Unauthorized: Invalid admin key provided");
+      console.error(`Provided key: ${providedAdminKey?.substring(0, 3)}... Expected key: ${adminKey.substring(0, 3)}...`);
       throw new Error('Unauthorized: Invalid admin key');
     }
 
@@ -80,7 +82,8 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: `Successfully processed ${competitiveData.length} competitors` 
+        message: `Successfully processed ${competitiveData.length} competitors`,
+        data: { inserted: competitiveData.length }
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 

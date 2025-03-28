@@ -4,7 +4,8 @@ import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { TerminalStore } from '@/pages/Admin';
 
-export type ProcessStatus = 'idle' | 'processing' | 'completed' | 'error';
+// Update this type to match the StepStatus type used in Steps.tsx
+export type ProcessStatus = 'idle' | 'processing' | 'completed' | 'error' | 'warning';
 
 export const useUnifiedWorkflow = (initialGeminiApiKey: string) => {
   const [apiKey, setApiKey] = useState('compliance-admin-key-2023');
@@ -119,6 +120,7 @@ export const useUnifiedWorkflow = (initialGeminiApiKey: string) => {
       
       const reportJson = transformData.reportJson;
       TerminalStore.addLine(`Content transformation completed successfully`);
+      TerminalStore.addLine(`Generated report JSON structure: ${Object.keys(JSON.parse(reportJson)).join(', ')}`);
       
       // Step 2: Process for RAG
       setProcessStatus(['completed', 'processing', 'idle']);
@@ -136,15 +138,29 @@ export const useUnifiedWorkflow = (initialGeminiApiKey: string) => {
       });
       
       if (ragError) {
+        TerminalStore.addLine(`RAG processing error: ${ragError.message}`);
         throw new Error(`RAG processing error: ${ragError.message}`);
       }
       
       if (!ragData || !ragData.processedContent) {
+        TerminalStore.addLine(`Error: No processed content returned from RAG function`);
         throw new Error('Failed to process content for RAG');
       }
       
       const processedContent = ragData.processedContent;
       TerminalStore.addLine(`RAG processing completed successfully`);
+      
+      // Log what's in the processed content
+      try {
+        const contentData = JSON.parse(processedContent);
+        if (Array.isArray(contentData)) {
+          TerminalStore.addLine(`Processed ${contentData.length} items for database insertion`);
+        } else {
+          TerminalStore.addLine(`Generated a document with ID: ${contentData.document_id || 'unknown'}`);
+        }
+      } catch (e) {
+        TerminalStore.addLine(`Warning: Could not parse processed content as JSON`);
+      }
       
       // Step 3: Store in database
       setProcessStatus(['completed', 'completed', 'processing']);
@@ -158,9 +174,12 @@ export const useUnifiedWorkflow = (initialGeminiApiKey: string) => {
       
       if (contentType === 'competitive-intel') {
         storeFunction = 'admin-competitive-intel';
+        TerminalStore.addLine(`Using ${storeFunction} function to store competitive intelligence data...`);
+      } else {
+        TerminalStore.addLine(`Using ${storeFunction} function to store RAG embeddings...`);
       }
       
-      const { error: storeError } = await supabase.functions.invoke(storeFunction, {
+      const { data: storeData, error: storeError } = await supabase.functions.invoke(storeFunction, {
         body: contentData,
         headers: {
           'Admin-Key': apiKey,
@@ -168,7 +187,14 @@ export const useUnifiedWorkflow = (initialGeminiApiKey: string) => {
       });
       
       if (storeError) {
+        TerminalStore.addLine(`Storage error: ${storeError.message}`);
+        TerminalStore.addLine(`Check that your admin API key is correct and the database is accessible`);
         throw new Error(`Storage error: ${storeError.message}`);
+      }
+      
+      // Log the response from the store function
+      if (storeData) {
+        TerminalStore.addLine(`Database response: ${JSON.stringify(storeData)}`);
       }
       
       setProcessStatus(['completed', 'completed', 'completed']);

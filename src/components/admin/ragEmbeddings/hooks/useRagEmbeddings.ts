@@ -40,6 +40,7 @@ export const useRagEmbeddings = () => {
       TerminalStore.addLine(`Starting ${contentType} content processing for RAG...`);
       
       // Use the Supabase client to invoke the edge function directly
+      TerminalStore.addLine(`Calling process-for-rag function...`);
       const { data, error } = await supabase.functions.invoke('process-for-rag', {
         body: {
           geminiApiKey,
@@ -67,7 +68,18 @@ export const useRagEmbeddings = () => {
       setProcessedContent(data.processedContent);
       setIsValid(true);
       
-      TerminalStore.addLine(`RAG processing completed successfully`);
+      // Log what's in the processed content
+      try {
+        const contentData = JSON.parse(data.processedContent);
+        if (Array.isArray(contentData)) {
+          TerminalStore.addLine(`Processed ${contentData.length} items ready for database insertion`);
+        } else {
+          TerminalStore.addLine(`Generated a document with ID: ${contentData.document_id || 'unknown'}`);
+        }
+        TerminalStore.addLine(`RAG processing completed successfully`);
+      } catch (e) {
+        TerminalStore.addLine(`Warning: Could not parse processed content as JSON`);
+      }
       
       toast({
         title: 'Content Processed',
@@ -145,24 +157,43 @@ export const useRagEmbeddings = () => {
       // Determine the endpoint and invoke the appropriate function
       if (contentType === 'competitive-intel') {
         TerminalStore.addLine(`Using admin-competitive-intel function...`);
-        await supabase.functions.invoke('admin-competitive-intel', {
+        const { data, error } = await supabase.functions.invoke('admin-competitive-intel', {
           body: contentData,
           headers: {
             'Admin-Key': apiKey,
           }
         });
+        
+        if (error) {
+          throw new Error(error.message || 'Failed to submit competitive intel data');
+        }
+        
+        // Log the response from the function
+        if (data) {
+          TerminalStore.addLine(`Database response: ${JSON.stringify(data)}`);
+        }
       } else {
         // For RAG embeddings
         TerminalStore.addLine(`Using admin-rag-embeddings function...`);
-        await supabase.functions.invoke('admin-rag-embeddings', {
+        const { data, error } = await supabase.functions.invoke('admin-rag-embeddings', {
           body: contentData,
           headers: {
             'Admin-Key': apiKey,
           }
         });
+        
+        if (error) {
+          throw new Error(error.message || 'Failed to submit RAG embeddings');
+        }
+        
+        // Log the response from the function
+        if (data) {
+          TerminalStore.addLine(`Database response: ${JSON.stringify(data)}`);
+        }
       }
       
       TerminalStore.addLine(`Content successfully saved to database`);
+      TerminalStore.addLine(`You can now query this data using the search endpoint`);
       
       toast({
         title: 'Success!',
@@ -179,6 +210,7 @@ export const useRagEmbeddings = () => {
     } catch (error) {
       console.error('Error submitting content:', error);
       TerminalStore.addLine(`Error submitting content: ${error.message}`);
+      TerminalStore.addLine(`Check that your admin API key is correct and the database is accessible`);
       toast({
         title: 'Error',
         description: error.message || 'Failed to submit content',
