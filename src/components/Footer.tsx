@@ -1,36 +1,14 @@
-import React, { useState } from 'react';
+
+import React from 'react';
 import { Shield, Github, Linkedin, Twitter, Mail, Lock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { toast } from '@/hooks/use-toast';
-import { loginWithCredentials } from '@/utils/authUtils';
-import { supabase } from '@/integrations/supabase/client';
-
-const formSchema = z.object({
-  email: z.string().email({ message: "Please enter a valid email address" }),
-  password: z.string().min(8, { message: "Password must be at least 8 characters" })
-});
+import { useAuth } from '@/contexts/AuthContext';
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
-  const [isLoginOpen, setIsLoginOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const { user, isAdmin } = useAuth();
   
-  const form = useForm({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      email: '',
-      password: ''
-    }
-  });
-
   const socialLinks = [
     { icon: Github, href: "#", label: "GitHub" },
     { icon: Linkedin, href: "#", label: "LinkedIn" },
@@ -46,34 +24,11 @@ const Footer = () => {
     { name: "Privacy", href: "#" }
   ];
 
-  const onSubmitLogin = async (values: z.infer<typeof formSchema>) => {
-    try {
-      setIsLoading(true);
-      
-      const { success, error } = await loginWithCredentials(values.email, values.password);
-      
-      if (!success) {
-        throw new Error(error || "Login failed. Please check your credentials.");
-      }
-      
-      toast({
-        title: "Login successful",
-        description: "Redirecting to admin panel...",
-      });
-      
-      // Close the dialog and navigate to admin page
-      setIsLoginOpen(false);
+  const handleAuthClick = () => {
+    if (user && isAdmin) {
       navigate('/admin');
-      
-    } catch (error) {
-      console.error('Login error:', error);
-      toast({
-        title: "Login failed",
-        description: error instanceof Error ? error.message : "Invalid credentials. Email: vetle@reprint.ink",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
+    } else {
+      navigate('/auth');
     }
   };
 
@@ -153,90 +108,14 @@ const Footer = () => {
           
           {/* Subtle admin login link */}
           <button 
-            onClick={() => setIsLoginOpen(true)}
+            onClick={handleAuthClick}
             className="text-cyber-light/30 hover:text-cyber-light/60 transition-colors flex items-center space-x-1 text-xs"
           >
             <Lock className="w-3 h-3" />
-            <span>Admin</span>
+            <span>{user ? (isAdmin ? "Admin Dashboard" : "Account") : "Login"}</span>
           </button>
         </div>
       </div>
-      
-      {/* Admin Login Dialog */}
-      <Dialog open={isLoginOpen} onOpenChange={setIsLoginOpen}>
-        <DialogContent className="bg-cyber-dark border border-cyber-light/10 text-cyber-light w-full max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-xl flex items-center gap-2">
-              <Lock className="w-5 h-5 text-cyber-blue" />
-              Admin Access
-            </DialogTitle>
-            <DialogDescription className="text-cyber-light/70">
-              Enter your credentials to access the admin dashboard.
-              <div className="mt-2 p-2 bg-cyber-light/5 rounded text-xs border border-cyber-blue/20">
-                <strong>Admin Email:</strong> vetle@reprint.ink
-              </div>
-            </DialogDescription>
-          </DialogHeader>
-          
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmitLogin)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-cyber-light">Email</FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="vetle@reprint.ink" 
-                        className="bg-cyber-slate border-cyber-light/20 text-cyber-light" 
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormMessage className="text-red-400" />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-cyber-light">Password</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="password" 
-                        className="bg-cyber-slate border-cyber-light/20 text-cyber-light" 
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormMessage className="text-red-400" />
-                  </FormItem>
-                )}
-              />
-              
-              <DialogFooter>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => setIsLoginOpen(false)}
-                  className="border-cyber-light/20 text-cyber-light hover:bg-cyber-light/5"
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  type="submit" 
-                  className="bg-cyber-blue hover:bg-cyber-blue/80 text-cyber-dark"
-                  disabled={isLoading}
-                >
-                  {isLoading ? "Authenticating..." : "Login"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
     </footer>
   );
 };

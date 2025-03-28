@@ -1,7 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, ShieldAlert } from 'lucide-react';
 import { Terminal } from '@/components/Terminal';
@@ -9,7 +8,7 @@ import AdminAIReportGenerator from '@/components/admin/reportGenerator/AdminAIRe
 import AdminRagEmbeddings from '@/components/admin/ragEmbeddings/AdminRagEmbeddings';
 import UnifiedArticleProcessor from '@/components/admin/unifiedWorkflow/UnifiedArticleProcessor';
 import { toast } from '@/hooks/use-toast';
-import { requireAdmin } from '@/utils/authUtils';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Store for the terminal
 export class TerminalStore {
@@ -38,31 +37,42 @@ export class TerminalStore {
 
 const Admin = () => {
   const [loading, setLoading] = useState(true);
-  const [authenticated, setAuthenticated] = useState(false);
+  const { user, isAdmin, signOut, isLoading } = useAuth();
   const navigate = useNavigate();
 
   // Authentication check
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        setLoading(true);
+        // Wait until auth loading is complete
+        if (isLoading) return;
         
-        // Use our requireAdmin function to check if user is admin
-        const isAdminUser = await requireAdmin(navigate);
+        setLoading(false);
         
-        if (!isAdminUser) {
+        if (!user) {
+          // Not logged in
+          toast({
+            title: "Authentication Required",
+            description: "Please login to access the admin panel",
+            variant: "destructive",
+          });
+          navigate('/auth');
+          return;
+        }
+        
+        if (!isAdmin) {
+          // Logged in but not admin
           toast({
             title: "Unauthorized",
             description: "You don't have permission to access the admin panel",
             variant: "destructive",
           });
+          navigate('/');
           return;
         }
         
         // Successfully authenticated as admin
-        setAuthenticated(true);
-        const { data } = await supabase.auth.getSession();
-        TerminalStore.addLine(`Admin session authenticated: ${data.session?.user.email}`);
+        TerminalStore.addLine(`Admin session authenticated: ${user.email}`);
       } catch (error) {
         console.error('Authentication error:', error);
         toast({
@@ -70,33 +80,17 @@ const Admin = () => {
           description: error.message || "Please try logging in again",
           variant: "destructive",
         });
-        navigate('/');
-      } finally {
-        setLoading(false);
+        navigate('/auth');
       }
     };
     
     checkAuth();
-    
-    // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_OUT') {
-        setAuthenticated(false);
-        navigate('/');
-      }
-    });
-    
-    return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, [navigate, user, isAdmin, isLoading]);
 
   // Handle logout
   const handleLogout = async () => {
     try {
-      await supabase.auth.signOut();
-      toast({
-        title: "Logged out",
-        description: "You have been successfully logged out",
-      });
+      await signOut();
       navigate('/');
     } catch (error) {
       console.error('Logout error:', error);
@@ -108,7 +102,7 @@ const Admin = () => {
     }
   };
 
-  if (loading) {
+  if (loading || isLoading) {
     return (
       <div className="min-h-screen bg-cyber-dark flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
@@ -119,7 +113,7 @@ const Admin = () => {
     );
   }
 
-  if (!authenticated) {
+  if (!user || !isAdmin) {
     return (
       <div className="min-h-screen bg-cyber-dark flex items-center justify-center">
         <div className="flex flex-col items-center gap-4 text-center max-w-md mx-auto p-6">
@@ -137,11 +131,6 @@ const Admin = () => {
     );
   }
 
-  if (!authenticated) {
-    return null; // Will redirect in useEffect
-  }
-
-  
   return (
     <div className="min-h-screen bg-cyber-dark flex flex-col">
       <header className="bg-cyber-slate border-b border-cyber-blue/30 py-4 px-6">

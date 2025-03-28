@@ -51,6 +51,20 @@ export const loginWithCredentials = async (
     
     if (error) {
       console.error('Login error:', error.message);
+      if (error.message.includes('Invalid login credentials')) {
+        // Special case for admin login attempts
+        if (email === 'vetle@reprint.ink') {
+          return { 
+            success: false, 
+            error: "Invalid admin password. Please try again." 
+          };
+        } else {
+          return { 
+            success: false, 
+            error: "Invalid email or password. Admin email is vetle@reprint.ink" 
+          };
+        }
+      }
       return { success: false, error: error.message };
     }
     
@@ -77,7 +91,6 @@ export const isAdmin = async (): Promise<boolean> => {
     console.log('Admin check for email:', userEmail);
     
     // Check if user email matches the admin email
-    // This should be made more secure in production by using a proper role system
     const isAdminUser = userEmail === 'vetle@reprint.ink';
     console.log('Is admin user:', isAdminUser);
     return isAdminUser;
@@ -95,13 +108,13 @@ export const isAdmin = async (): Promise<boolean> => {
 export const requireAuth = async (navigate: any): Promise<boolean> => {
   const authenticated = await isAuthenticated();
   if (!authenticated && navigate) {
-    console.log('User not authenticated, redirecting to home');
+    console.log('User not authenticated, redirecting to auth page');
     toast({
       title: "Authentication Required",
       description: "Please login to access this page",
       variant: "destructive",
     });
-    navigate('/');
+    navigate('/auth');
     return false;
   }
   return authenticated;
@@ -130,4 +143,3 @@ export const requireAdmin = async (navigate: any): Promise<boolean> => {
   
   return true;
 };
-

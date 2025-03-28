@@ -1,64 +1,40 @@
 
 import React from 'react';
 import { Input } from '@/components/ui/input';
-import { EyeIcon, EyeOffIcon } from 'lucide-react';
+import { Label } from '@/components/ui/label';
 
-interface ApiKeyInputProps {
+export type ApiKeyInputProps = {
   value: string;
-  onChange: (value: string) => void;
-  label?: string;
+  onChange: React.Dispatch<React.SetStateAction<string>>;
+  label: string;
   placeholder?: string;
-  hideKey?: boolean;
-  adminKey?: boolean;
-  description?: string;
-}
+  description?: string; // Added prop for description
+};
 
 const ApiKeyInput: React.FC<ApiKeyInputProps> = ({
   value,
   onChange,
-  label = 'API Key',
-  placeholder = 'Enter API key',
-  hideKey = true,
-  adminKey = false,
+  label,
+  placeholder = '••••••••••••••••••••••••••••••••',
   description
 }) => {
-  const [showKey, setShowKey] = React.useState(false);
-
   return (
     <div className="space-y-2">
-      <div className="flex justify-between items-center">
-        <label htmlFor="apiKey" className="block text-sm font-medium text-cyber-light">
-          {label}
-        </label>
-        {adminKey && value && (
-          <span className="text-xs text-cyber-blue">✓ Using admin key for {label.toLowerCase()}</span>
-        )}
-      </div>
-      <div className="relative">
-        <Input
-          id="apiKey"
-          type={hideKey && !showKey ? 'password' : 'text'}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          className="w-full bg-cyber-slate border-cyber-blue/30 text-cyber-light pr-10"
-        />
-        {hideKey && (
-          <button
-            type="button"
-            onClick={() => setShowKey(!showKey)}
-            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-cyber-light/50 hover:text-cyber-light"
-          >
-            {showKey ? (
-              <EyeOffIcon className="h-4 w-4" />
-            ) : (
-              <EyeIcon className="h-4 w-4" />
-            )}
-          </button>
-        )}
-      </div>
+      <Label htmlFor="api-key" className="text-cyber-light">
+        {label}
+      </Label>
+      <Input
+        id="api-key"
+        type="password"
+        placeholder={placeholder}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="bg-cyber-slate border-cyber-light/20 text-cyber-light w-full"
+      />
       {description && (
-        <p className="text-xs text-cyber-light/70">{description}</p>
+        <p className="text-xs text-cyber-light/70">
+          {description}
+        </p>
       )}
     </div>
   );
