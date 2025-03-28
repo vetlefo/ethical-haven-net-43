@@ -9,6 +9,7 @@ import AdminRagEmbeddings from '@/components/AdminRagEmbeddings';
 import Terminal from '@/components/Terminal';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from '@/components/ui/card';
+import { supabase } from '@/integrations/supabase/client';
 
 const Admin: React.FC = () => {
   const [terminalLines, setTerminalLines] = useState<string[]>([
@@ -23,6 +24,29 @@ const Admin: React.FC = () => {
     "Vector embedding module initialized.",
     "Ready to process compliance reports."
   ]);
+
+  const executeCommand = async (command: string) => {
+    setTerminalLines(prev => [...prev, `$ ${command}`, `Processing command: ${command}...`]);
+    
+    // Check if it's a research command
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-report', {
+        body: {
+          geminiApiKey: "YOUR_KEY_HERE", // This should be replaced with a proper key input field
+          prompt: command
+        }
+      });
+      
+      if (error) {
+        setTerminalLines(prev => [...prev, `Error: ${error.message}`]);
+      } else if (data) {
+        setTerminalLines(prev => [...prev, `Command executed successfully`, `Result: ${JSON.stringify(data, null, 2)}`]);
+      }
+    } catch (err) {
+      console.error("Error executing command:", err);
+      setTerminalLines(prev => [...prev, `Error: ${err.message || "Failed to execute command"}`]);
+    }
+  };
 
   return (
     <>
@@ -70,9 +94,7 @@ const Admin: React.FC = () => {
                     command: "#f8fafc",
                     comment: "#8B5CF6"
                   }}
-                  onCommand={(command) => {
-                    setTerminalLines(prev => [...prev, `$ ${command}`, `Processing command: ${command}...`]);
-                  }}
+                  onCommand={executeCommand}
                 />
               </Card>
             </div>
