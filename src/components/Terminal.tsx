@@ -15,10 +15,11 @@ interface TerminalProps {
     command?: string;
     comment?: string;
   };
+  title?: string; // Add title prop
 }
 
-const Terminal: React.FC<TerminalProps> = ({
-  lines,
+export const Terminal: React.FC<TerminalProps> = ({
+  lines = [],
   typingSpeed = 25,
   startDelay = 1000,
   className,
@@ -29,7 +30,8 @@ const Terminal: React.FC<TerminalProps> = ({
     prompt: "#0ea5e9",
     command: "#f8fafc",
     comment: "#8B5CF6"
-  }
+  },
+  title
 }) => {
   const [displayedLines, setDisplayedLines] = useState<string[]>([]);
   const [currentLine, setCurrentLine] = useState(0);
@@ -163,63 +165,71 @@ const Terminal: React.FC<TerminalProps> = ({
   };
 
   return (
-    <div 
-      className={cn(
-        "font-mono text-left p-4 sm:p-6 overflow-hidden text-sm sm:text-base",
-        interactive && "h-[400px] sm:h-[500px] flex flex-col",
-        className
+    <div className="bg-cyber-slate/80 border border-cyber-blue/30 rounded-md overflow-hidden">
+      {title && (
+        <div className="border-b border-cyber-blue/20 py-2 px-4 flex items-center">
+          <span className="text-sm text-cyber-light/70">{title}</span>
+        </div>
       )}
-      onClick={focusInput}
-      ref={terminalRef}
-    >
-      <div className="flex items-center space-x-2 mb-2">
-        <div className="w-3 h-3 rounded-full bg-red-500"></div>
-        <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-        <div className="w-3 h-3 rounded-full bg-green-500"></div>
-        <span className="ml-2 text-cyber-light/60 text-xs sm:text-sm">{promptText}</span>
-      </div>
-      
-      <div className={cn("text-cyber-light/90", interactive && "flex-1 overflow-y-auto mb-4")}>
-        {displayedLines.map((line, index) => (
-          <div key={`line-${index}`} className="mb-1">
-            {line.startsWith('$') ? (
-              line
-            ) : (
-              <>
-                <span style={{ color: colors.prompt }} className="mr-2">$</span> {formatLine(line)}
-              </>
-            )}
-          </div>
-        ))}
+      <div 
+        className={cn(
+          "font-mono text-left p-4 sm:p-6 overflow-hidden text-sm sm:text-base",
+          interactive && "h-[400px] sm:h-[500px] flex flex-col",
+          className
+        )}
+        onClick={focusInput}
+        ref={terminalRef}
+      >
+        <div className="flex items-center space-x-2 mb-2">
+          <div className="w-3 h-3 rounded-full bg-red-500"></div>
+          <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+          <div className="w-3 h-3 rounded-full bg-green-500"></div>
+          <span className="ml-2 text-cyber-light/60 text-xs sm:text-sm">{promptText}</span>
+        </div>
         
-        {currentLine < lines.length && (
-          <div>
-            <span style={{ color: colors.prompt }} className="mr-2">$</span> 
-            <span style={{ color: colors.command }}>
-              {formatLine(lines[currentLine].substring(0, displayedChars))}
-            </span>
-            {cursor ? <span className="animate-pulse">_</span> : <span> </span>}
-          </div>
+        <div className={cn("text-cyber-light/90", interactive && "flex-1 overflow-y-auto mb-4")}>
+          {displayedLines.map((line, index) => (
+            <div key={`line-${index}`} className="mb-1">
+              {line.startsWith('$') ? (
+                line
+              ) : (
+                <>
+                  <span style={{ color: colors.prompt }} className="mr-2">$</span> {formatLine(line)}
+                </>
+              )}
+            </div>
+          ))}
+          
+          {currentLine < lines.length && (
+            <div>
+              <span style={{ color: colors.prompt }} className="mr-2">$</span> 
+              <span style={{ color: colors.command }}>
+                {formatLine(lines[currentLine].substring(0, displayedChars))}
+              </span>
+              {cursor ? <span className="animate-pulse">_</span> : <span> </span>}
+            </div>
+          )}
+        </div>
+        
+        {interactive && initialTypingComplete && (
+          <form onSubmit={handleInputSubmit} className="mt-auto flex items-center border-t border-cyber-blue/20 pt-3">
+            <span style={{ color: colors.prompt }} className="mr-2">$</span>
+            <input
+              ref={inputRef}
+              type="text"
+              value={userInput}
+              onChange={handleInputChange}
+              className="flex-1 bg-transparent outline-none text-cyber-light/90"
+              placeholder="Type a command (try 'help')..."
+              autoFocus
+            />
+            {cursor && !userInput && <span className="animate-pulse">_</span>}
+          </form>
         )}
       </div>
-      
-      {interactive && initialTypingComplete && (
-        <form onSubmit={handleInputSubmit} className="mt-auto flex items-center border-t border-cyber-blue/20 pt-3">
-          <span style={{ color: colors.prompt }} className="mr-2">$</span>
-          <input
-            ref={inputRef}
-            type="text"
-            value={userInput}
-            onChange={handleInputChange}
-            className="flex-1 bg-transparent outline-none text-cyber-light/90"
-            placeholder="Type a command (try 'help')..."
-            autoFocus
-          />
-          {cursor && !userInput && <span className="animate-pulse">_</span>}
-        </form>
-      )}
     </div>
   );
 };
 
+// We need to export both default and named export to support both import styles
 export default Terminal;

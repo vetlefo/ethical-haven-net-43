@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -164,7 +165,7 @@ const Admin = () => {
       </main>
       
       <div className="container mx-auto px-6 pb-6">
-        <Terminal title="Admin Operations Log" />
+        <Terminal title="Admin Operations Log" lines={TerminalStore.lines} />
       </div>
     </div>
   );
