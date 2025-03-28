@@ -179,8 +179,24 @@ serve(async (req) => {
     // Parse the request body
     let requestData;
     try {
-      requestData = await req.json();
-      console.log("Request received with body:", JSON.stringify(requestData));
+      const requestText = await req.text();
+      console.log("Raw request body:", requestText);
+      
+      if (!requestText || requestText.trim() === '') {
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: 'Empty request body'
+          }),
+          { 
+            status: 400, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
+      
+      requestData = JSON.parse(requestText);
+      console.log("Request parsed successfully:", JSON.stringify(requestData));
     } catch (parseError) {
       console.error("Error parsing request body:", parseError);
       return new Response(

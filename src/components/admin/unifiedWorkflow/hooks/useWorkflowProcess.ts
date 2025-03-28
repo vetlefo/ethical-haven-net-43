@@ -36,7 +36,9 @@ export const useWorkflowProcess = () => {
 
     try {
       // Get authentication token
-      const authToken = await supabase.auth.getSession().then(res => res.data.session?.access_token);
+      const authSession = await supabase.auth.getSession();
+      const authToken = authSession.data.session?.access_token;
+      
       if (!authToken) {
         toast({
           title: 'Authentication Required',
@@ -63,11 +65,16 @@ export const useWorkflowProcess = () => {
         TerminalStore.addLine(`Content preview: ${rawContent.substring(0, 50)}...`);
       }
       
+      // Fix: Send data as an object with a content property
+      const requestPayload = { 
+        content: rawContent,
+        contentType: contentType
+      };
+      
+      TerminalStore.addLine(`Sending request to generate-report with payload: ${JSON.stringify(requestPayload, null, 2)}`);
+      
       const { data: transformData, error: transformError } = await supabase.functions.invoke('generate-report', {
-        body: {
-          content: rawContent,
-          contentType: contentType
-        },
+        body: requestPayload,
         headers: {
           'Authorization': `Bearer ${authToken}`,
           'Content-Type': 'application/json'

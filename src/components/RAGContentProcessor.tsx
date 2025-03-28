@@ -42,23 +42,40 @@ const RAGContentProcessor: React.FC = () => {
 
       // Step 1: Process with Gemini
       console.log("Step 1: Processing with Gemini...");
-      TerminalStore?.addLine?.("RAG Processor: Step 1 - Processing with Gemini...") || null;
       
-      const authToken = await supabase.auth.getSession().then(res => res.data.session?.access_token || '');
+      if (TerminalStore && TerminalStore.addLine) {
+        TerminalStore.addLine("RAG Processor: Step 1 - Processing with Gemini...");
+      }
+      
+      const authSession = await supabase.auth.getSession();
+      const authToken = authSession.data.session?.access_token;
+      
       if (!authToken) {
         throw new Error('Authentication required. Please log in again.');
       }
       
-      TerminalStore?.addLine?.(`RAG Processor: Content type: ${contentType}, Content length: ${rawContent.length} characters`) || null;
-      if (rawContent.length > 50) {
-        TerminalStore?.addLine?.(`RAG Processor: Content preview: ${rawContent.substring(0, 50)}...`) || null;
+      if (TerminalStore && TerminalStore.addLine) {
+        TerminalStore.addLine(`RAG Processor: Content type: ${contentType}, Content length: ${rawContent.length} characters`);
+        
+        if (rawContent.length > 50) {
+          TerminalStore.addLine(`RAG Processor: Content preview: ${rawContent.substring(0, 50)}...`);
+        }
+      }
+      
+      // Fix: Send data as an object with a content property
+      const requestPayload = { 
+        content: rawContent,
+        contentType: contentType
+      };
+      
+      console.log("Sending request with payload:", requestPayload);
+      
+      if (TerminalStore && TerminalStore.addLine) {
+        TerminalStore.addLine(`RAG Processor: Sending request with payload: ${JSON.stringify(requestPayload)}`);
       }
       
       const { data: transformData, error: transformError } = await supabase.functions.invoke('generate-report', {
-        body: {
-          content: rawContent,
-          contentType
-        },
+        body: requestPayload,
         headers: {
           'Authorization': `Bearer ${authToken}`,
           'Content-Type': 'application/json'
@@ -66,12 +83,16 @@ const RAGContentProcessor: React.FC = () => {
       });
       
       if (transformError) {
-        TerminalStore?.addLine?.(`RAG Processor Error: Generate-report function error: ${transformError.message}`) || null;
+        if (TerminalStore && TerminalStore.addLine) {
+          TerminalStore.addLine(`RAG Processor Error: Generate-report function error: ${transformError.message}`);
+        }
         throw new Error(`Gemini processing error: ${transformError.message}`);
       }
       
       if (!transformData || !transformData.reportJson) {
-        TerminalStore?.addLine?.(`RAG Processor Error: No data returned from the processing service`) || null;
+        if (TerminalStore && TerminalStore.addLine) {
+          TerminalStore.addLine(`RAG Processor Error: No data returned from the processing service`);
+        }
         throw new Error('No data returned from the processing service');
       }
       
@@ -80,12 +101,19 @@ const RAGContentProcessor: React.FC = () => {
       try {
         parsedReport = JSON.parse(transformData.reportJson);
         console.log("Successfully parsed report JSON:", parsedReport.title);
-        TerminalStore?.addLine?.(`RAG Processor: Successfully parsed report JSON: ${parsedReport.title}`) || null;
+        
+        if (TerminalStore && TerminalStore.addLine) {
+          TerminalStore.addLine(`RAG Processor: Successfully parsed report JSON: ${parsedReport.title}`);
+        }
       } catch (e) {
         console.error("Error parsing report JSON:", e);
         console.log("Raw report JSON:", transformData.reportJson.substring(0, 100) + "...");
-        TerminalStore?.addLine?.(`RAG Processor Error: Failed to parse report JSON: ${e.message}`) || null;
-        TerminalStore?.addLine?.(`RAG Processor Error: Raw JSON preview: ${transformData.reportJson.substring(0, 100)}...`) || null;
+        
+        if (TerminalStore && TerminalStore.addLine) {
+          TerminalStore.addLine(`RAG Processor Error: Failed to parse report JSON: ${e.message}`);
+          TerminalStore.addLine(`RAG Processor Error: Raw JSON preview: ${transformData.reportJson.substring(0, 100)}...`);
+        }
+        
         throw new Error(`Failed to parse report JSON: ${e.message}`);
       }
       
@@ -95,7 +123,10 @@ const RAGContentProcessor: React.FC = () => {
 
       // Step 2: Chunk the content
       console.log("Step 2: Chunking content...");
-      TerminalStore?.addLine?.("RAG Processor: Step 2 - Chunking content...") || null;
+      
+      if (TerminalStore && TerminalStore.addLine) {
+        TerminalStore.addLine("RAG Processor: Step 2 - Chunking content...");
+      }
       
       const paragraphs = rawContent.split(/\n\s*\n/);
       const chunks = paragraphs.map((p, i) => ({
@@ -105,7 +136,10 @@ const RAGContentProcessor: React.FC = () => {
       })).filter(chunk => chunk.text.length > 0);
       
       console.log(`Created ${chunks.length} chunks from content`);
-      TerminalStore?.addLine?.(`RAG Processor: Created ${chunks.length} chunks from content`) || null;
+      
+      if (TerminalStore && TerminalStore.addLine) {
+        TerminalStore.addLine(`RAG Processor: Created ${chunks.length} chunks from content`);
+      }
       
       setProcessStatus(['completed', 'completed', 'processing', 'waiting']);
       setProcessingStep(2);
@@ -113,7 +147,10 @@ const RAGContentProcessor: React.FC = () => {
 
       // Step 3: Generate embeddings
       console.log("Step 3: Generating embeddings...");
-      TerminalStore?.addLine?.("RAG Processor: Step 3 - Generating embeddings...") || null;
+      
+      if (TerminalStore && TerminalStore.addLine) {
+        TerminalStore.addLine("RAG Processor: Step 3 - Generating embeddings...");
+      }
       
       const { data: embeddingData, error: embeddingError } = await supabase.functions.invoke('process-for-rag', {
         body: {
@@ -123,15 +160,21 @@ const RAGContentProcessor: React.FC = () => {
         },
         headers: {
           'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json'
         }
       });
       
       if (embeddingError) {
         console.warn("Warning: Embedding generation error:", embeddingError);
-        TerminalStore?.addLine?.(`RAG Processor Warning: Embedding generation error: ${embeddingError.message}`) || null;
-        TerminalStore?.addLine?.("RAG Processor: Continuing with the process even though embeddings failed") || null;
+        
+        if (TerminalStore && TerminalStore.addLine) {
+          TerminalStore.addLine(`RAG Processor Warning: Embedding generation error: ${embeddingError.message}`);
+          TerminalStore.addLine("RAG Processor: Continuing with the process even though embeddings failed");
+        }
       } else {
-        TerminalStore?.addLine?.("RAG Processor: Embeddings processed successfully") || null;
+        if (TerminalStore && TerminalStore.addLine) {
+          TerminalStore.addLine("RAG Processor: Embeddings processed successfully");
+        }
       }
       
       setProcessStatus(['completed', 'completed', 'completed', 'processing']);
@@ -140,32 +183,45 @@ const RAGContentProcessor: React.FC = () => {
 
       // Step 4: Store everything in the database - add RAG flag
       console.log("Step 4: Storing in database...");
-      TerminalStore?.addLine?.("RAG Processor: Step 4 - Storing in database...") || null;
+      
+      if (TerminalStore && TerminalStore.addLine) {
+        TerminalStore.addLine("RAG Processor: Step 4 - Storing in database...");
+      }
       
       // Make sure the is_rag_enabled flag is set
       parsedReport.is_rag_enabled = true;
       
-      TerminalStore?.addLine?.(`RAG Processor: Adding is_rag_enabled flag: ${parsedReport.is_rag_enabled}`) || null;
+      if (TerminalStore && TerminalStore.addLine) {
+        TerminalStore.addLine(`RAG Processor: Adding is_rag_enabled flag: ${parsedReport.is_rag_enabled}`);
+      }
       
       const { data: storeData, error: storeError } = await supabase.functions.invoke('store-report', {
         body: parsedReport,
         headers: {
           'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json'
         }
       });
       
       if (storeError) {
-        TerminalStore?.addLine?.(`RAG Processor Error: Database storage error: ${storeError.message}`) || null;
+        if (TerminalStore && TerminalStore.addLine) {
+          TerminalStore.addLine(`RAG Processor Error: Database storage error: ${storeError.message}`);
+        }
         throw new Error(`Database storage error: ${storeError.message}`);
       }
       
       if (!storeData || !storeData.report) {
-        TerminalStore?.addLine?.(`RAG Processor Error: Failed to store report in database - no report ID returned`) || null;
+        if (TerminalStore && TerminalStore.addLine) {
+          TerminalStore.addLine(`RAG Processor Error: Failed to store report in database - no report ID returned`);
+        }
         throw new Error('Failed to store report in database');
       }
       
       console.log("Report stored successfully:", storeData.report.id);
-      TerminalStore?.addLine?.(`RAG Processor: Report stored successfully with ID: ${storeData.report.id}`) || null;
+      
+      if (TerminalStore && TerminalStore.addLine) {
+        TerminalStore.addLine(`RAG Processor: Report stored successfully with ID: ${storeData.report.id}`);
+      }
       
       setProcessStatus(['completed', 'completed', 'completed', 'completed']);
 
