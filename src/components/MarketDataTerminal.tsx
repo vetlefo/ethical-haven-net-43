@@ -1,15 +1,23 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import 'xterm/css/xterm.css';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 interface MarketDataTerminalProps {
   interactive?: boolean;
   className?: string;
 }
 
+interface CommandResponse {
+  type: 'text' | 'link';
+  content: string;
+  url?: string;
+}
+
 const MarketDataTerminal: React.FC<MarketDataTerminalProps> = ({ interactive = false, className }) => {
+  const navigate = useNavigate();
   const terminalRef = useRef<HTMLDivElement>(null);
   const term = useRef<Terminal | null>(null);
   const fitAddon = useRef<FitAddon | null>(null);
@@ -60,17 +68,17 @@ const MarketDataTerminal: React.FC<MarketDataTerminalProps> = ({ interactive = f
         }
       });
 
-      window.addEventListener('resize', () => {
+      const handleResize = () => {
         fitAddon.current?.fit();
-      });
-    }
+      };
 
-    return () => {
-      term.current?.dispose();
-      window.removeEventListener('resize', () => {
-        fitAddon.current?.fit();
-      });
-    };
+      window.addEventListener('resize', handleResize);
+
+      return () => {
+        term.current?.dispose();
+        window.removeEventListener('resize', handleResize);
+      };
+    }
   }, [interactive]);
 
   useEffect(() => {
@@ -79,7 +87,11 @@ const MarketDataTerminal: React.FC<MarketDataTerminalProps> = ({ interactive = f
     }
   }, []);
 
-  const commands = {
+  const commands: Record<string, {
+    description: string;
+    command?: string;
+    response: (args?: string[]) => CommandResponse[];
+  }> = {
     help: {
       description: 'Show available commands',
       response: () => {
@@ -150,7 +162,6 @@ const MarketDataTerminal: React.FC<MarketDataTerminalProps> = ({ interactive = f
       },
     },
     reports: {
-      command: 'reports',
       description: 'Show available compliance reports',
       response: () => {
         return [
@@ -239,12 +250,16 @@ const MarketDataTerminal: React.FC<MarketDataTerminalProps> = ({ interactive = f
       response.forEach(item => {
         if (item.type === 'text') {
           term.current?.write(item.content);
-        } else if (item.type === 'link') {
-          // Custom handling for links
+        } else if (item.type === 'link' && item.url) {
+          // Handle link clicks to navigate within the app
           const linkContent = item.content;
           const linkUrl = item.url;
-          // Open link in a new tab/window
+          
+          // Create interactive link
           term.current?.write(`\x1b]8;;${linkUrl}\x1b\\${linkContent}\x1b]8;;\x1b\\`);
+          
+          // Alternatively, we could navigate programmatically, but this approach
+          // gives the user more control to click or ignore the link
         }
       });
     } else {

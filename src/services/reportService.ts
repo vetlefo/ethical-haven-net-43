@@ -46,7 +46,13 @@ export const getReports = async (): Promise<ComplianceReport[]> => {
     return [];
   }
   
-  return data || [];
+  return (data || []).map(item => ({
+    ...item,
+    content: typeof item.content === 'string' 
+      ? JSON.parse(item.content) 
+      : item.content,
+    tags: Array.isArray(item.tags) ? item.tags : []
+  })) as ComplianceReport[];
 };
 
 export const getReportBySlug = async (slug: string): Promise<ComplianceReport | null> => {
@@ -61,7 +67,15 @@ export const getReportBySlug = async (slug: string): Promise<ComplianceReport | 
     return null;
   }
   
-  return data;
+  if (!data) return null;
+  
+  return {
+    ...data,
+    content: typeof data.content === 'string' 
+      ? JSON.parse(data.content) 
+      : data.content,
+    tags: Array.isArray(data.tags) ? data.tags : []
+  } as ComplianceReport;
 };
 
 export const getFeaturedReports = async (): Promise<ComplianceReport[]> => {
@@ -76,5 +90,11 @@ export const getFeaturedReports = async (): Promise<ComplianceReport[]> => {
     return [];
   }
   
-  return data || [];
+  return (data || []).map(item => ({
+    ...item,
+    content: typeof item.content === 'string' 
+      ? JSON.parse(item.content) 
+      : item.content,
+    tags: Array.isArray(item.tags) ? item.tags : []
+  })) as ComplianceReport[];
 };
