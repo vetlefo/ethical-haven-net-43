@@ -1,10 +1,13 @@
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { Shield, FileText, Globe, User, Database, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getFeaturedReports } from '@/services/reportService';
 
 const Services: React.FC = () => {
   const sectionRef = useRef<HTMLElement>(null);
+  const [featuredReportSlug, setFeaturedReportSlug] = useState<string | null>(null);
 
   useEffect(() => {
     const section = sectionRef.current;
@@ -29,6 +32,21 @@ const Services: React.FC = () => {
     };
   }, []);
 
+  useEffect(() => {
+    const fetchFeaturedReport = async () => {
+      try {
+        const reports = await getFeaturedReports();
+        if (reports.length > 0) {
+          setFeaturedReportSlug(reports[0].slug);
+        }
+      } catch (error) {
+        console.error("Error fetching featured report:", error);
+      }
+    };
+
+    fetchFeaturedReport();
+  }, []);
+
   const marketAnalysis = [
     {
       icon: Shield,
@@ -40,7 +58,8 @@ const Services: React.FC = () => {
         "Key Regulations: GDPR, NIS2, LkSG, IT Security Act 2.0",
         "Competitive Intensity: Medium",
         "Key Pain Point: Regulatory complexity"
-      ]
+      ],
+      slug: "germany-market-analysis"
     },
     {
       icon: FileText,
@@ -150,8 +169,26 @@ const Services: React.FC = () => {
                 </ul>
               </div>
               <div className="bg-gradient-to-r from-cyber-blue/20 to-cyber-blue/10 px-6 py-4 flex justify-between items-center">
-                <span className="text-cyber-light font-medium">View Full Analysis</span>
-                <span className="text-cyber-blue transform group-hover:translate-x-1 transition-transform">→</span>
+                {market.slug && featuredReportSlug === market.slug ? (
+                  <Link 
+                    to={`/reports/${market.slug}`} 
+                    className="text-cyber-light font-medium hover:text-cyber-blue transition-colors"
+                  >
+                    View Full Analysis
+                  </Link>
+                ) : (
+                  <span className="text-cyber-light font-medium">View Full Analysis</span>
+                )}
+                {market.slug && featuredReportSlug === market.slug ? (
+                  <Link 
+                    to={`/reports/${market.slug}`}
+                    className="text-cyber-blue transform group-hover:translate-x-1 transition-transform"
+                  >
+                    →
+                  </Link>
+                ) : (
+                  <span className="text-cyber-blue transform group-hover:translate-x-1 transition-transform">→</span>
+                )}
               </div>
             </div>
           ))}
@@ -161,12 +198,19 @@ const Services: React.FC = () => {
           <p className="text-cyber-light/70 mb-6 max-w-2xl mx-auto">
             Need detailed insights on specific markets or regulatory frameworks?
           </p>
-          <button 
-            className="cyber-button"
-            onClick={() => document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' })}
-          >
-            Request Custom Research
-          </button>
+          <div className="flex flex-wrap gap-4 justify-center">
+            <button 
+              className="cyber-button"
+              onClick={() => document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' })}
+            >
+              Request Custom Research
+            </button>
+            
+            <Link to="/reports" className="px-6 py-3 text-cyber-light/80 hover:text-cyber-blue transition-colors flex items-center gap-2">
+              <FileText className="w-4 h-4" />
+              Browse All Reports
+            </Link>
+          </div>
         </div>
       </div>
     </section>

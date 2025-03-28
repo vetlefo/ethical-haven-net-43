@@ -1,167 +1,235 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { FileText, Search, ChevronRight } from 'lucide-react';
-import { 
-  Pagination, 
-  PaginationContent, 
-  PaginationItem, 
-  PaginationLink, 
-  PaginationNext, 
-  PaginationPrevious 
-} from "@/components/ui/pagination";
-import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
-import { marketReports } from '@/utils/reportData';
+import { FileText, Search, X, Tag, Filter } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { ComplianceReport, getReports } from '@/services/reportService';
+import ReportCard from '@/components/ReportCard';
 
-const Reports = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const reportsPerPage = 6;
+const Reports: React.FC = () => {
+  const [reports, setReports] = useState<ComplianceReport[]>([]);
+  const [filteredReports, setFilteredReports] = useState<ComplianceReport[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [selectedRegions, setSelectedRegions] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [allTags, setAllTags] = useState<string[]>([]);
+  const [allRegions, setAllRegions] = useState<string[]>([]);
+  const [showFilters, setShowFilters] = useState(false);
 
-  // Filter reports based on search term
-  const filteredReports = marketReports.filter(report => 
-    report.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    report.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    report.regions.some(region => region.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
-
-  // Pagination logic
-  const indexOfLastReport = currentPage * reportsPerPage;
-  const indexOfFirstReport = indexOfLastReport - reportsPerPage;
-  const currentReports = filteredReports.slice(indexOfFirstReport, indexOfLastReport);
-  const totalPages = Math.ceil(filteredReports.length / reportsPerPage);
+  useEffect(() => {
+    const fetchReports = async () => {
+      setIsLoading(true);
+      try {
+        const data = await getReports();
+        setReports(data);
+        setFilteredReports(data);
+        
+        // Extract all unique tags and regions
+        const tags = Array.from(new Set(data.flatMap(report => report.tags)));
+        const regions = Array.from(new Set(data.map(report => report.region).filter(Boolean) as string[]));
+        
+        setAllTags(tags);
+        setAllRegions(regions);
+      } catch (error) {
+        console.error('Error fetching reports:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchReports();
+  }, []);
+  
+  useEffect(() => {
+    const applyFilters = () => {
+      let results = reports;
+      
+      // Apply search query filter
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        results = results.filter(report => 
+          report.title.toLowerCase().includes(query) ||
+          report.summary.toLowerCase().includes(query) ||
+          (report.content.sections.some(section => 
+            section.title.toLowerCase().includes(query) || 
+            section.content.toLowerCase().includes(query)
+          ))
+        );
+      }
+      
+      // Apply tag filter
+      if (selectedTags.length > 0) {
+        results = results.filter(report => 
+          selectedTags.some(tag => report.tags.includes(tag))
+        );
+      }
+      
+      // Apply region filter
+      if (selectedRegions.length > 0) {
+        results = results.filter(report => 
+          report.region && selectedRegions.includes(report.region)
+        );
+      }
+      
+      setFilteredReports(results);
+    };
+    
+    applyFilters();
+  }, [searchQuery, selectedTags, selectedRegions, reports]);
+  
+  const handleTagToggle = (tag: string) => {
+    setSelectedTags(prev => 
+      prev.includes(tag) 
+        ? prev.filter(t => t !== tag) 
+        : [...prev, tag]
+    );
+  };
+  
+  const handleRegionToggle = (region: string) => {
+    setSelectedRegions(prev => 
+      prev.includes(region) 
+        ? prev.filter(r => r !== region) 
+        : [...prev, region]
+    );
+  };
+  
+  const clearFilters = () => {
+    setSearchQuery('');
+    setSelectedTags([]);
+    setSelectedRegions([]);
+  };
+  
+  const hasActiveFilters = searchQuery || selectedTags.length > 0 || selectedRegions.length > 0;
 
   return (
-    <div className="min-h-screen bg-cyber-dark flex flex-col">
-      <Navbar />
-      
-      <main className="flex-grow py-28 px-6">
-        <div className="container mx-auto">
-          <div className="text-center mb-10 space-y-4">
-            <div className="inline-block px-4 py-1 rounded-full bg-cyber-blue/10 border border-cyber-blue/20 text-cyber-blue text-sm font-medium">
-              Market Intelligence
-            </div>
-            <h1 className="text-4xl font-bold">
-              Compliance <span className="gradient-text">Research</span> Reports
-            </h1>
-            <p className="text-cyber-light/70 max-w-2xl mx-auto">
-              Access our comprehensive market research reports with detailed analysis, 
-              data visualizations, and strategic recommendations.
-            </p>
-          </div>
-
-          <div className="relative max-w-md mx-auto mb-12">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-cyber-light/50" size={18} />
-            <Input
-              type="text"
-              placeholder="Search reports by title, description, or region..."
-              className="pl-10 bg-cyber-slate border border-cyber-blue/20 text-cyber-light focus:border-cyber-blue"
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setCurrentPage(1); // Reset to first page on search
-              }}
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
-            {currentReports.length > 0 ? (
-              currentReports.map((report) => (
-                <Link 
-                  to={`/reports/${report.id}`} 
-                  key={report.id}
-                  className="glass-card overflow-hidden transition-all duration-300 group hover:border-cyber-blue/40 block"
+    <div className="min-h-screen bg-cyber-dark">
+      <div className="container mx-auto py-12 px-4">
+        <div className="flex flex-col mb-12">
+          <Link to="/" className="text-cyber-blue mb-3 flex items-center gap-1 hover:underline">
+            ← Back to Home
+          </Link>
+          
+          <h1 className="text-4xl font-bold mb-4">Compliance Research Library</h1>
+          <p className="text-cyber-light/70 max-w-3xl mb-8">
+            In-depth market research reports on compliance software opportunities, regulatory frameworks, and market entry strategies across global markets.
+          </p>
+          
+          <div className="flex flex-col md:flex-row gap-4 items-start">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-cyber-light/50 h-4 w-4" />
+              <Input
+                type="text"
+                placeholder="Search by keyword..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 bg-cyber-slate/50 border-cyber-blue/20 focus:border-cyber-blue"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-cyber-light/50 hover:text-cyber-light"
                 >
-                  <div className="p-6 pb-8">
-                    <div className="mb-4 p-3 rounded-full bg-cyber-blue/10 inline-block">
-                      <FileText className="w-6 h-6 text-cyber-blue" />
-                    </div>
-                    <h3 className="text-xl font-medium mb-3 group-hover:text-cyber-blue transition-colors">
-                      {report.title}
-                    </h3>
-                    <p className="text-cyber-light/70 mb-4 line-clamp-3">
-                      {report.description}
-                    </p>
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      {report.regions.map((region, idx) => (
-                        <span 
-                          key={idx} 
-                          className="px-2 py-1 text-xs rounded-full bg-cyber-blue/10 text-cyber-blue"
-                        >
-                          {region}
-                        </span>
-                      ))}
-                    </div>
-                    <div className="flex justify-between items-center text-sm text-cyber-light/50">
-                      <span>{report.date}</span>
-                      <span>{report.pages} pages</span>
-                    </div>
-                  </div>
-                  <div className="bg-gradient-to-r from-cyber-blue/20 to-cyber-blue/10 px-6 py-4 flex justify-between items-center">
-                    <span className="text-cyber-light font-medium">View Full Report</span>
-                    <span className="text-cyber-blue transform group-hover:translate-x-1 transition-transform">
-                      <ChevronRight size={18} />
-                    </span>
-                  </div>
-                </Link>
-              ))
-            ) : (
-              <div className="col-span-full text-center py-12">
-                <div className="mb-4 p-4 rounded-full bg-cyber-blue/10 inline-block">
-                  <Search className="w-8 h-8 text-cyber-blue" />
-                </div>
-                <h3 className="text-xl font-medium mb-2">No Reports Found</h3>
-                <p className="text-cyber-light/70">
-                  We couldn't find any reports matching "{searchTerm}". 
-                  Try using different keywords or browse all reports.
-                </p>
-                <button 
-                  className="mt-6 cyber-button"
-                  onClick={() => setSearchTerm('')}
-                >
-                  View All Reports
+                  <X className="h-4 w-4" />
                 </button>
-              </div>
+              )}
+            </div>
+            
+            <Button 
+              variant="outline" 
+              className="flex items-center gap-2 border-cyber-blue/30 text-cyber-blue"
+              onClick={() => setShowFilters(!showFilters)}
+            >
+              <Filter className="h-4 w-4" />
+              Filters {hasActiveFilters && `(${selectedTags.length + selectedRegions.length})`}
+            </Button>
+            
+            {hasActiveFilters && (
+              <Button 
+                variant="ghost" 
+                className="text-cyber-light/70 hover:text-cyber-light"
+                onClick={clearFilters}
+              >
+                Clear All
+              </Button>
             )}
           </div>
-
-          {filteredReports.length > reportsPerPage && (
-            <Pagination className="my-8">
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious 
-                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                    className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
-                  />
-                </PaginationItem>
+          
+          {showFilters && (
+            <div className="mt-4 p-4 bg-cyber-slate/20 rounded-lg border border-cyber-blue/10">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h3 className="text-cyber-light font-medium mb-3 flex items-center gap-2">
+                    <Tag className="h-4 w-4 text-cyber-blue" />
+                    Filter by Tag
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {allTags.map(tag => (
+                      <button
+                        key={tag}
+                        onClick={() => handleTagToggle(tag)}
+                        className={`px-3 py-1 text-xs rounded-full transition-colors ${
+                          selectedTags.includes(tag)
+                            ? 'bg-cyber-blue/20 text-cyber-blue border border-cyber-blue/30'
+                            : 'bg-cyber-slate/40 text-cyber-light/70 border border-transparent hover:border-cyber-blue/20'
+                        }`}
+                      >
+                        {tag}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 
-                {[...Array(totalPages)].map((_, idx) => (
-                  <PaginationItem key={idx}>
-                    <PaginationLink
-                      onClick={() => setCurrentPage(idx + 1)}
-                      isActive={currentPage === idx + 1}
-                    >
-                      {idx + 1}
-                    </PaginationLink>
-                  </PaginationItem>
-                ))}
-                
-                <PaginationItem>
-                  <PaginationNext 
-                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                    className={currentPage === totalPages ? "pointer-events-none opacity-50" : ""}
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
+                <div>
+                  <h3 className="text-cyber-light font-medium mb-3 flex items-center gap-2">
+                    <Globe className="h-4 w-4 text-cyber-blue" />
+                    Filter by Region
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {allRegions.map(region => (
+                      <button
+                        key={region}
+                        onClick={() => handleRegionToggle(region)}
+                        className={`px-3 py-1 text-xs rounded-full transition-colors ${
+                          selectedRegions.includes(region)
+                            ? 'bg-cyber-blue/20 text-cyber-blue border border-cyber-blue/30'
+                            : 'bg-cyber-slate/40 text-cyber-light/70 border border-transparent hover:border-cyber-blue/20'
+                        }`}
+                      >
+                        {region}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
           )}
         </div>
-      </main>
-      
-      <Footer />
+        
+        {isLoading ? (
+          <div className="flex justify-center items-center py-20">
+            <div className="animate-spin h-8 w-8 border-4 border-cyber-blue/20 border-t-cyber-blue rounded-full"></div>
+          </div>
+        ) : filteredReports.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {filteredReports.map((report) => (
+              <ReportCard key={report.id} report={report} />
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <FileText className="h-16 w-16 text-cyber-blue/30 mb-4" />
+            <h3 className="text-xl font-medium mb-2">No reports found</h3>
+            <p className="text-cyber-light/70 max-w-md mb-6">
+              We couldn't find any reports matching your search criteria. Try adjusting your filters or search query.
+            </p>
+            <Button onClick={clearFilters} variant="outline" className="border-cyber-blue/30 text-cyber-blue">
+              Clear Filters
+            </Button>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

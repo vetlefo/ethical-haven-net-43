@@ -9,7 +9,63 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      compliance_reports: {
+        Row: {
+          author: string | null
+          category: string | null
+          content: Json
+          country: string | null
+          cover_image: string | null
+          created_at: string | null
+          id: string
+          is_featured: boolean | null
+          published_at: string | null
+          read_time: number | null
+          region: string | null
+          slug: string
+          summary: string
+          tags: string[] | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          author?: string | null
+          category?: string | null
+          content: Json
+          country?: string | null
+          cover_image?: string | null
+          created_at?: string | null
+          id?: string
+          is_featured?: boolean | null
+          published_at?: string | null
+          read_time?: number | null
+          region?: string | null
+          slug: string
+          summary: string
+          tags?: string[] | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          author?: string | null
+          category?: string | null
+          content?: Json
+          country?: string | null
+          cover_image?: string | null
+          created_at?: string | null
+          id?: string
+          is_featured?: boolean | null
+          published_at?: string | null
+          read_time?: number | null
+          region?: string | null
+          slug?: string
+          summary?: string
+          tags?: string[] | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
