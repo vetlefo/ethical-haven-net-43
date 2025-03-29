@@ -32,9 +32,39 @@ cd <YOUR_PROJECT_NAME>
 # Step 3: Install the necessary dependencies.
 npm i
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Step 4: Set up environment variables.
+# Create a file named .env in the project root directory.
+# Add the following lines, replacing the placeholder values with your actual Supabase credentials:
+# VITE_SUPABASE_URL=YOUR_SUPABASE_URL
+# VITE_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
+
+# Step 5: Start the development server with auto-reloading and an instant preview.
 npm run dev
 ```
+
+### Environment Variables
+
+This project requires the following environment variables to connect to Supabase:
+
+*   `VITE_SUPABASE_URL`: Your Supabase project URL.
+*   `VITE_SUPABASE_ANON_KEY`: Your Supabase project anon key.
+
+Create a `.env` file in the root of the project and add these variables:
+
+```dotenv
+VITE_SUPABASE_URL=YOUR_SUPABASE_URL
+VITE_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
+```
+
+**Important:** Ensure the `.env` file is added to your `.gitignore` file to prevent accidentally committing sensitive keys.
+
+### Supabase Edge Functions Environment Variables
+
+The Supabase Edge Functions (located in `supabase/functions/`) require their own environment variables, which need to be set in the Supabase project dashboard or via the Supabase CLI. The key variable identified is:
+
+*   `GEMINI_API_KEY`: Your API key for the Google Gemini service, used for AI report generation and embedding creation.
+
+Refer to the [Supabase documentation on Edge Function environment variables](https://supabase.com/docs/guides/functions/environment-variables) for instructions on how to set these.
 
 **Edit a file directly in GitHub**
 

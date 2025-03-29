@@ -10,30 +10,93 @@ import UnifiedArticleProcessor from '@/components/admin/unifiedWorkflow/UnifiedA
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 
-// Store for the terminal
-export class TerminalStore {
-  static lines: string[] = [];
-  static listeners: Function[] = [];
+// Store for the terminal with session persistence
+const TERMINAL_STORAGE_KEY = 'reportCaseAdminTerminalLog';
+const MAX_TERMINAL_LINES = 200;
 
-  static addLine(line: string) {
-    this.lines.push(`${new Date().toISOString().split('T')[1].slice(0, -1)}: ${line}`);
-    if (this.lines.length > 100) this.lines.shift();
+export class TerminalStore {
+  private static _instance: TerminalStore | null = null;
+  private lines: string[] = [];
+  private listeners: Set<Function> = new Set();
+
+  private constructor() {
+    // Load initial lines from sessionStorage
+    try {
+      const storedLines = sessionStorage.getItem(TERMINAL_STORAGE_KEY);
+      if (storedLines) {
+        this.lines = JSON.parse(storedLines);
+        // Ensure it doesn't exceed max lines on load
+        if (this.lines.length > MAX_TERMINAL_LINES) {
+          this.lines = this.lines.slice(this.lines.length - MAX_TERMINAL_LINES);
+        }
+      }
+    } catch (e) {
+      console.error("Failed to load terminal logs from sessionStorage:", e);
+      sessionStorage.removeItem(TERMINAL_STORAGE_KEY); // Clear corrupted data
+      this.lines = [];
+    }
+  }
+
+  // Singleton pattern to ensure only one instance
+  public static getInstance(): TerminalStore {
+    if (!TerminalStore._instance) {
+      TerminalStore._instance = new TerminalStore();
+    }
+    return TerminalStore._instance;
+  }
+
+  private saveLines() {
+    try {
+      sessionStorage.setItem(TERMINAL_STORAGE_KEY, JSON.stringify(this.lines));
+    } catch (e) {
+      console.error("Failed to save terminal logs to sessionStorage:", e);
+    }
+  }
+
+  private notifyListeners() {
+    // Pass a copy to prevent mutation issues
+    const linesCopy = [...this.lines];
+    this.listeners.forEach(listener => listener(linesCopy));
+  }
+
+  public getLines(): string[] {
+    // Return a copy
+    return [...this.lines];
+  }
+
+  public addLine(line: string) {
+    const timestamp = new Date().toISOString().split('T')[1].slice(0, -1); // HH:MM:SS.sss
+    this.lines.push(`${timestamp}: ${line}`);
+    // Limit the number of lines stored
+    if (this.lines.length > MAX_TERMINAL_LINES) {
+      this.lines.shift(); // Remove the oldest line
+    }
+    this.saveLines();
     this.notifyListeners();
   }
 
-  static subscribe(callback: Function) {
-    this.listeners.push(callback);
-    return () => {
-      this.listeners = this.listeners.filter(listener => listener !== callback);
-    };
+  public clearLines() {
+    this.lines = [];
+    this.saveLines();
+    this.notifyListeners();
+    this.addLine("Log cleared."); // Add a confirmation message
   }
 
-  static notifyListeners() {
-    for (const listener of this.listeners) {
-      listener(this.lines);
-    }
+  public subscribe(callback: Function): () => void {
+    this.listeners.add(callback);
+    // Immediately call with current lines
+    callback([...this.lines]);
+    // Return unsubscribe function
+    return () => {
+      this.listeners.delete(callback);
+    };
   }
 }
+
+// Helper function to add lines easily
+export const addTerminalLine = (line: string) => {
+  TerminalStore.getInstance().addLine(line);
+};
 
 const Admin = () => {
   const [loading, setLoading] = useState(true);
@@ -70,10 +133,9 @@ const Admin = () => {
           navigate('/');
           return;
         }
-        
         // Successfully authenticated as admin
-        TerminalStore.addLine(`Admin session authenticated: ${user.email}`);
-      } catch (error) {
+        addTerminalLine(`Admin session authenticated: ${user.email}`);
+      } catch (error: any) { // Add type annotation for consistency if desired, or leave as is
         console.error('Authentication error:', error);
         toast({
           title: "Authentication error",
@@ -174,10 +236,12 @@ const Admin = () => {
       </main>
       
       <div className="container mx-auto px-6 pb-6">
-        <Terminal title="Admin Operations Log" lines={TerminalStore.lines} />
+        {/* Terminal component now manages its own state via subscribe */}
+        {/* We will update the Terminal component next to accept this prop */}
+        <Terminal title="Admin Operations Log" store={TerminalStore.getInstance()} />
       </div>
     </div>
-  );
+  ); // <-- Added missing closing parenthesis
 };
 
 export default Admin;

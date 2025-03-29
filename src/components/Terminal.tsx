@@ -1,228 +1,194 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
+import { Button } from './ui/button'; // Assuming Button component exists
+
+// Import the store type
+import { TerminalStore } from '@/pages/Admin'; // Adjust path if TerminalStore is moved
 
 interface TerminalProps {
-  lines: string[];
-  typingSpeed?: number;
-  startDelay?: number;
+  // Remove lines, typingSpeed, startDelay
+  store: TerminalStore; // Add store prop
   className?: string;
-  interactive?: boolean;
-  onCommand?: (command: string) => void;
-  promptText?: string;
+  interactive?: boolean; // Keep interactive mode optional
+  onCommand?: (command: string) => void; // Keep for interactive mode
+  promptText?: string; // Keep for interactive mode
   colors?: {
     prompt?: string;
     command?: string;
     comment?: string;
   };
-  title?: string; 
+  title?: string;
 }
 
 export const Terminal: React.FC<TerminalProps> = ({
-  lines = [],
-  typingSpeed = 25,
-  startDelay = 1000,
+  store, // Destructure store
   className,
   interactive = false,
   onCommand,
-  promptText = "cybersecure@terminal:~",
+  promptText = "admin@reportcase:~", // Updated prompt
   colors = {
-    prompt: "#0ea5e9",
+    prompt: "#0ea5e9", // Keep default colors or adjust
     command: "#f8fafc",
     comment: "#8B5CF6"
   },
   title
 }) => {
-  const [displayedLines, setDisplayedLines] = useState<string[]>([]);
-  const [currentLine, setCurrentLine] = useState(0);
-  const [displayedChars, setDisplayedChars] = useState(0);
-  const [cursor, setCursor] = useState(true);
-  const [started, setStarted] = useState(false);
+  // State to hold lines from the store
+  const [terminalLines, setTerminalLines] = useState<string[]>([]);
+  // State for interactive input
   const [userInput, setUserInput] = useState('');
-  const [initialTypingComplete, setInitialTypingComplete] = useState(false);
+  const [cursor, setCursor] = useState(true);
+  // Refs
   const terminalRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  // Add mounted ref to track component lifecycle
   const mountedRef = useRef(true);
 
+  // Subscribe to the store on mount and unsubscribe on unmount
   useEffect(() => {
-    // Set mounted on initialization
     mountedRef.current = true;
-    
-    const timer = setTimeout(() => {
+
+    const unsubscribe = store.subscribe((newLines: string[]) => {
       if (mountedRef.current) {
-        setStarted(true);
+        setTerminalLines(newLines);
       }
-    }, startDelay);
+    });
 
     // Cleanup function
     return () => {
       mountedRef.current = false;
-      clearTimeout(timer);
+      unsubscribe();
     };
-  }, [startDelay]);
+  }, [store]); // Re-subscribe if the store instance changes (though it shouldn't with Singleton)
 
+  // Blinking cursor effect for interactive mode
   useEffect(() => {
-    if (!started || currentLine >= lines.length || !mountedRef.current) {
-      if (started && currentLine >= lines.length && !initialTypingComplete && mountedRef.current) {
-        setInitialTypingComplete(true);
-      }
-      return;
-    }
+    if (!interactive) return; // Only needed for interactive mode
 
-    const lineToType = lines[currentLine];
-    let timer: NodeJS.Timeout;
-    
-    if (displayedChars < lineToType.length) {
-      timer = setTimeout(() => {
-        if (mountedRef.current) {
-          setDisplayedChars(displayedChars + 1);
-        }
-      }, typingSpeed);
-      
-    } else {
-      // Line complete
-      timer = setTimeout(() => {
-        if (mountedRef.current) {
-          setDisplayedLines(prev => {
-            const newLines = [...prev];
-            newLines[currentLine] = lineToType;
-            return newLines;
-          });
-          setCurrentLine(prev => prev + 1);
-          setDisplayedChars(0);
-        }
-      }, 500);
-    }
-    
-    return () => {
-      clearTimeout(timer);
-    };
-  }, [displayedChars, currentLine, lines, started, typingSpeed, initialTypingComplete]);
-
-  // Blinking cursor
-  useEffect(() => {
     const timer = setInterval(() => {
       if (mountedRef.current) {
         setCursor(prev => !prev);
       }
     }, 500);
-    
-    return () => {
-      clearInterval(timer);
-    };
-  }, []);
 
-  // Auto-scroll to bottom
+    return () => clearInterval(timer);
+  }, [interactive]);
+
+  // Auto-scroll to bottom when lines change or user types
   useEffect(() => {
     if (terminalRef.current && mountedRef.current) {
       terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
     }
-  }, [displayedLines, userInput]);
+  }, [terminalLines, userInput]); // Depend on lines from store and user input
 
-  // Cleanup on unmount
+  // Ensure mountedRef is false on unmount
   useEffect(() => {
     return () => {
       mountedRef.current = false;
     };
   }, []);
 
-  // Focus input when terminal is clicked
+  // Focus input when terminal area is clicked in interactive mode
   const focusInput = () => {
-    if (interactive && initialTypingComplete && inputRef.current && mountedRef.current) {
+    if (interactive && inputRef.current && mountedRef.current) {
       inputRef.current.focus();
     }
   };
 
+  // Handle changes in the interactive input field
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (mountedRef.current) {
       setUserInput(e.target.value);
     }
   };
 
+  // Handle command submission in interactive mode
   const handleInputSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (userInput.trim() && onCommand && mountedRef.current) {
-      // Add the command to displayed lines
-      const commandLine = `$ ${userInput}`;
-      setDisplayedLines(prev => [...prev, commandLine]);
-      
-      // Call the handler
+      // Add command to store log
+      store.addLine(`$ ${userInput}`);
+      // Execute the command callback
       onCommand(userInput);
-      
-      // Clear input
+      // Clear the input field
       setUserInput('');
     }
   };
 
-  // Format line based on content
+  // Format lines for display (e.g., timestamps, command prompts)
   const formatLine = (line: string) => {
+    // Simple timestamp check (adjust regex if format changes)
+    const timestampMatch = line.match(/^(\d{2}:\d{2}:\d{2}\.\d{3}):\s/);
+    if (timestampMatch) {
+      const timestamp = timestampMatch[1];
+      const content = line.substring(timestampMatch[0].length);
+      // Example: Dim timestamp, normal content
+      return <><span className="text-cyber-light/50 mr-2">{timestamp}</span>{content}</>;
+    }
+    // Format command input lines differently
+    if (line.startsWith('$ ')) {
+       return <span className="text-green-400">{line}</span>;
+    }
+    // Keep comment formatting or other specific formatting
     if (line.startsWith('#')) {
       return <span style={{ color: colors.comment }}>{line}</span>;
     }
-    return line;
+    return line; // Default return
+  };
+
+  // Handler for the clear log button
+  const handleClearLog = () => {
+    store.clearLines();
   };
 
   return (
-    <div className="bg-cyber-slate/80 border border-cyber-blue/30 rounded-md overflow-hidden">
+    // Main container with styling
+    <div className="bg-cyber-slate/80 border border-cyber-blue/30 rounded-md overflow-hidden flex flex-col">
+      {/* Optional Title Bar */}
       {title && (
-        <div className="border-b border-cyber-blue/20 py-2 px-4 flex items-center">
+        <div className="border-b border-cyber-blue/20 py-2 px-4 flex items-center justify-between">
           <span className="text-sm text-cyber-light/70">{title}</span>
+          {/* Clear Log Button */}
+          <Button variant="ghost" size="sm" onClick={handleClearLog} className="text-xs h-auto px-2 py-1 text-cyber-light/60 hover:bg-cyber-light/10 hover:text-cyber-light">
+            Clear Log
+          </Button>
         </div>
       )}
-      <div 
+      {/* Terminal Content Area */}
+      <div
         className={cn(
           "font-mono text-left p-4 sm:p-6 overflow-hidden text-sm sm:text-base",
-          interactive && "h-[400px] sm:h-[500px] flex flex-col",
+          "h-[400px] sm:h-[500px] flex flex-col", // Fixed height, flex column layout
           className
         )}
-        onClick={focusInput}
-        ref={terminalRef}
+        onClick={focusInput} // Allow focusing input by clicking area
+        ref={terminalRef} // Ref for auto-scrolling
       >
-        <div className="flex items-center space-x-2 mb-2">
-          <div className="w-3 h-3 rounded-full bg-red-500"></div>
-          <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-          <div className="w-3 h-3 rounded-full bg-green-500"></div>
-          <span className="ml-2 text-cyber-light/60 text-xs sm:text-sm">{promptText}</span>
-        </div>
-        
-        <div className={cn("text-cyber-light/90", interactive && "flex-1 overflow-y-auto mb-4")}>
-          {displayedLines.map((line, index) => (
-            <div key={`line-${index}`} className="mb-1">
-              {line.startsWith('$') ? (
-                line
-              ) : (
-                <>
-                  <span style={{ color: colors.prompt }} className="mr-2">$</span> {formatLine(line)}
-                </>
-              )}
+        {/* Log Display Area */}
+        <div className={cn("text-cyber-light/90 flex-1 overflow-y-auto mb-4")}>
+          {terminalLines.map((line, index) => (
+            // Render each line, ensuring wrapping
+            <div key={`line-${index}`} className="whitespace-pre-wrap break-words">
+              {formatLine(line)}
             </div>
           ))}
-          
-          {currentLine < lines.length && (
-            <div>
-              <span style={{ color: colors.prompt }} className="mr-2">$</span> 
-              <span style={{ color: colors.command }}>
-                {formatLine(lines[currentLine].substring(0, displayedChars))}
-              </span>
-              {cursor ? <span className="animate-pulse">_</span> : <span> </span>}
-            </div>
-          )}
         </div>
-        
-        {interactive && initialTypingComplete && (
+
+        {/* Interactive Input Area (only if interactive is true) */}
+        {interactive && (
           <form onSubmit={handleInputSubmit} className="mt-auto flex items-center border-t border-cyber-blue/20 pt-3">
-            <span style={{ color: colors.prompt }} className="mr-2">$</span>
+            {/* Prompt */}
+            <span style={{ color: colors.prompt }} className="mr-2">{promptText}$</span>
+            {/* Input Field */}
             <input
               ref={inputRef}
               type="text"
               value={userInput}
               onChange={handleInputChange}
               className="flex-1 bg-transparent outline-none text-cyber-light/90"
-              placeholder="Type a command (try 'help')..."
-              autoFocus
+              placeholder="Type a command..." // Placeholder text
+              autoFocus // Auto-focus on render
             />
+            {/* Blinking cursor simulation */}
             {cursor && !userInput && <span className="animate-pulse">_</span>}
           </form>
         )}
@@ -231,5 +197,5 @@ export const Terminal: React.FC<TerminalProps> = ({
   );
 };
 
-// We need to export both default and named export to support both import styles
+// Export both default and named export
 export default Terminal;

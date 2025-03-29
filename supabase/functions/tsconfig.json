@@ -1,0 +1,33 @@
+{
+  "compilerOptions": {
+    // Type checking options
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitAny": false, // Supabase examples sometimes use any, adjust if needed
+
+    // Module options
+    "module": "ESNext",
+    "moduleResolution": "Bundler", // Aligns with modern tooling
+    "target": "ESNext",
+
+    // Emit options
+    "noEmit": true, // Supabase CLI handles the build process
+
+    // Interop options
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+
+    // Deno specific: Reference Deno types implicitly
+    // This relies on the editor/tooling having Deno support enabled
+    // or potentially adding "deno-types" comments in files if needed.
+    // Explicit lib inclusion can sometimes cause conflicts if not managed carefully.
+    // Let's start minimal and see if the editor picks it up.
+    "lib": ["ESNext", "DOM"] // Include DOM for fetch API etc. Deno types should be provided by env/editor extension.
+  },
+  "include": ["./**/*.ts"], // Include all TS files within the functions directory
+  "exclude": ["node_modules"]
+}

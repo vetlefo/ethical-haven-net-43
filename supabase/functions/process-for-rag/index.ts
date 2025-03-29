@@ -378,23 +378,27 @@ serve(async (req) => {
 
     // Parse the request body
     const requestData = await req.json();
-    
-    if (!requestData.geminiApiKey) {
-      throw new Error('Missing Gemini API key');
+
+    // Get API key from environment
+    const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
+    if (!geminiApiKey) {
+      console.error("Missing environment variable: GEMINI_API_KEY");
+      return new Response(
+        JSON.stringify({ success: false, error: 'Missing Gemini API key configuration' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
+    // Check for content
     if (!requestData.content) {
       throw new Error('Missing content for processing');
     }
 
     // Determine if this is a compliance report or competitive intelligence report
     const isCompetitiveIntel = requestData.contentType === 'competitive-intel';
-    
-    // Use the Gemini API key from the request
-    const geminiApiKey = requestData.geminiApiKey;
-    
+
     let processedContent;
-    
+
     if (isCompetitiveIntel) {
       // Configure the request to the Gemini API for competitive intelligence
       const geminiApiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro-exp-03-25:generateContent";

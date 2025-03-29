@@ -1,8 +1,10 @@
 
 import { useState } from 'react';
 import { toast } from '@/hooks/use-toast';
-import { TerminalStore } from '@/pages/Admin';
+// Import the helper function instead of the class directly for logging
+import { addTerminalLine } from '@/pages/Admin';
 import { getAuthToken } from '@/utils/authUtils';
+import { supabase } from '@/integrations/supabase/client'; // Import supabase client
 
 export interface UseReportSubmissionProps {
   setActiveTab: (tab: string) => void;
@@ -19,7 +21,8 @@ export const useReportSubmission = ({ setActiveTab }: UseReportSubmissionProps) 
         description: 'Please enter your admin API key',
         variant: 'destructive',
       });
-      TerminalStore.addLine(`Error: Admin API key required for report submission`);
+      // Use helper function
+      addTerminalLine(`Error: Admin API key required for report submission`);
       return;
     }
 
@@ -29,7 +32,8 @@ export const useReportSubmission = ({ setActiveTab }: UseReportSubmissionProps) 
         description: 'Please generate a report first',
         variant: 'destructive',
       });
-      TerminalStore.addLine(`Error: No report to submit`);
+      // Use helper function
+      addTerminalLine(`Error: No report to submit`);
       return;
     }
 
@@ -39,7 +43,8 @@ export const useReportSubmission = ({ setActiveTab }: UseReportSubmissionProps) 
         description: 'The report contains invalid JSON. Please fix it before submitting.',
         variant: 'destructive',
       });
-      TerminalStore.addLine(`Error: Invalid JSON in report`);
+      // Use helper function
+      addTerminalLine(`Error: Invalid JSON in report`);
       return;
     }
 
@@ -52,35 +57,42 @@ export const useReportSubmission = ({ setActiveTab }: UseReportSubmissionProps) 
           description: 'You must be logged in to submit reports',
           variant: 'destructive',
         });
-        TerminalStore.addLine(`Error: Authentication required for report submission`);
+        // Use helper function
+        addTerminalLine(`Error: Authentication required for report submission`);
         return;
       }
 
       setIsSubmitting(true);
-      TerminalStore.addLine(`Submitting generated report to database...`);
-      
+      // Use helper function
+      addTerminalLine(`Submitting generated report to database...`);
+
       // Parse the JSON input
       const reportData = JSON.parse(generatedReport);
-      
-      const response = await fetch('/api/admin-reports', {
-        method: 'POST',
+
+      // Use supabase.functions.invoke
+      const { data: result, error } = await supabase.functions.invoke('admin-reports', { // Assuming function name matches route
+        body: reportData,
         headers: {
-          'Content-Type': 'application/json',
-          'Admin-Key': apiKey,
-          'Authorization': `Bearer ${authToken}` // Add auth token
-        },
-        body: JSON.stringify(reportData),
+          'Authorization': `Bearer ${authToken}`,
+          'Admin-Key': apiKey // Pass Admin-Key if required by the function
+        }
       });
-      
-      const result = await response.json();
-      
-      if (!response.ok) {
-        TerminalStore.addLine(`Error submitting report: ${result.error || 'Unknown error'}`);
-        throw new Error(result.error || 'Failed to submit report');
+
+      if (error) {
+        addTerminalLine(`Error submitting report: ${error.message}`);
+        throw new Error(error.message || 'Failed to submit report');
       }
-      
-      TerminalStore.addLine(`Report successfully submitted to database`);
-      
+
+      // Check for application-level errors if the function returns a success flag
+      // Note: Adjust this check based on the actual return structure of 'admin-reports'
+      if (!result || result.success === false) {
+         const errorMsg = result?.error || 'Report submission failed';
+         addTerminalLine(`Report submission failed: ${errorMsg}`);
+         throw new Error(errorMsg);
+      }
+
+      addTerminalLine(`Report successfully submitted to database`);
+
       toast({
         title: 'Success!',
         description: 'Transformed report has been added to the database',
@@ -90,11 +102,12 @@ export const useReportSubmission = ({ setActiveTab }: UseReportSubmissionProps) 
       setActiveTab('prompt');
       
       return true;
-    } catch (error) {
+    } catch (error: any) { // Add type annotation
       console.error('Error submitting report:', error);
-      TerminalStore.addLine(`Error submitting report: ${error.message}`);
+      // Use helper function
+      addTerminalLine(`Error submitting report: ${error.message}`);
       toast({
-        title: 'Error',
+        title: 'Submission Error', // More specific title
         description: error.message || 'Failed to submit report',
         variant: 'destructive',
       });
