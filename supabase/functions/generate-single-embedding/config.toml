@@ -1,0 +1,17 @@
+# Default Supabase Edge Function config
+# See https://supabase.com/docs/guides/functions/config
+
+[import_map]
+# Add any necessary import map entries here if needed
+# Example:
+# imports = { "my-module" = "https://deno.land/x/my_module/mod.ts" }
+
+[browser]
+main = "index.ts"
+
+[experimental_deploy_watch]
+enabled = true
+ignored_files = [".gitignore", "README.md"]
+
+# This function should ideally be secured, e.g., by checking an internal API key
+# passed in headers from the pg_net trigger function.

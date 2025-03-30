@@ -1,0 +1,18 @@
+# Default Supabase Edge Function config
+# See https://supabase.com/docs/guides/functions/config
+
+[import_map]
+# Add any necessary import map entries here if needed
+
+[browser]
+main = "index.ts"
+
+[experimental_deploy_watch]
+enabled = true
+ignored_files = [".gitignore", "README.md"]
+
+# Enable JWT verification as this is likely an admin-only function
+[auth.jwt]
+enabled = true
+claim_mappings = ["user_id", "role"] # Ensure 'role' claim is available
+required_claims = { "role": ["admin"] } # Restrict to users with 'admin' role claim

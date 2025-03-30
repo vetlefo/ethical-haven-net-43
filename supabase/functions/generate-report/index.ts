@@ -212,13 +212,14 @@ serve(async (req) => {
       console.log("Request parsed successfully:", JSON.stringify(requestData));
     } catch (parseError) {
       console.error("Error parsing request body:", parseError);
+      const parseErrorMessage = parseError instanceof Error ? parseError.message : String(parseError);
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: `Invalid JSON in request body: ${parseError.message}`
+        JSON.stringify({
+          success: false,
+          error: `Invalid JSON in request body: ${parseErrorMessage}`
         }),
-        { 
-          status: 400, 
+        {
+          status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       );
@@ -373,13 +374,14 @@ serve(async (req) => {
     } catch (error) {
       console.error("Invalid JSON in response:", error);
       console.log("First 200 chars of response:", reportJson.substring(0, 200));
+      const parseErrorMessage = error instanceof Error ? error.message : String(error);
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: `Generated content is not valid JSON: ${error.message}`
+        JSON.stringify({
+          success: false,
+          error: `Generated content is not valid JSON: ${parseErrorMessage}`
         }),
-        { 
-          status: 502, 
+        {
+          status: 502,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       );
@@ -399,13 +401,16 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error processing request:', error);
     
+    // Type assertion for error handling
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    
     return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: error.message || 'An unknown error occurred'
+      JSON.stringify({
+        success: false,
+        error: errorMessage
       }),
-      { 
-        status: 500, 
+      {
+        status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
     );

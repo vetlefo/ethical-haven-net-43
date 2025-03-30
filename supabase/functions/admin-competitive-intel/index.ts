@@ -25,24 +25,53 @@ serve(async (req) => {
   try {
     // Only allow POST method
     if (req.method !== 'POST') {
-      throw new Error('Method not allowed. Only POST requests are supported.');
+      console.error("Method not allowed:", req.method);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Method not allowed. Only POST requests are supported.'
+        }),
+        {
+          status: 405,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     // Verify admin API key
     const providedAdminKey = req.headers.get('Admin-Key');
     if (!providedAdminKey || providedAdminKey !== adminKey) {
-      console.error("Unauthorized: Invalid admin key provided");
+      console.error("Forbidden: Invalid admin key provided");
       console.error(`Provided key: ${providedAdminKey?.substring(0, 3)}... Expected key: ${adminKey.substring(0, 3)}...`);
-      throw new Error('Unauthorized: Invalid admin key');
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Forbidden: Invalid admin key'
+        }),
+        {
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     // Parse the request body
     const competitiveData = await req.json();
-    
     // Validate that we received an array
     if (!Array.isArray(competitiveData)) {
-      throw new Error('Invalid data format. Expected an array of competitor objects.');
+      console.error("Invalid data format: Expected an array", competitiveData);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Invalid data format. Expected an array of competitor objects.'
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
+
 
     console.log(`Processing ${competitiveData.length} competitors for insertion...`);
     
@@ -74,7 +103,16 @@ serve(async (req) => {
 
     if (error) {
       console.error("Error inserting competitive intelligence data:", error);
-      throw new Error(`Database error: ${error.message}`);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: `Database error: ${error.message}`
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     console.log("Successfully inserted competitive intelligence data");
@@ -92,15 +130,17 @@ serve(async (req) => {
     
   } catch (error) {
     console.error('Error processing competitive intelligence data:', error);
+    // Type assertion for error handling
+    const errorMessage = error instanceof Error ? error.message : String(error);
     
     return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: error.message 
+      JSON.stringify({
+        success: false,
+        error: errorMessage
       }),
-      { 
-        status: 400, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      {
+        status: 500, // Use 500 for unexpected server errors
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
   }

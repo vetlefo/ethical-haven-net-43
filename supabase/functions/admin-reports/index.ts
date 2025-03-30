@@ -65,7 +65,17 @@ serve(async (req) => {
   try {
     // Only allow POST method
     if (req.method !== 'POST') {
-      throw new Error('Method not allowed. Only POST requests are supported.');
+      console.error("Method not allowed:", req.method);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Method not allowed. Only POST requests are supported.'
+        }),
+        {
+          status: 405,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     // Parse the request body
@@ -73,7 +83,17 @@ serve(async (req) => {
     
     // Validate required fields
     if (!reportData.title || !reportData.slug || !reportData.summary || !reportData.content) {
-      throw new Error('Missing required fields: title, slug, summary, and content are required.');
+      console.error("Missing required fields in report data:", reportData);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Missing required fields: title, slug, summary, and content are required.'
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     // Create a Supabase client with the Deno runtime
@@ -81,7 +101,17 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
     
     if (!supabaseUrl || !supabaseServiceKey) {
-      throw new Error('Missing Supabase environment variables.');
+      console.error("Missing Supabase environment variables (URL or Service Key)");
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Server configuration error: Missing Supabase credentials.'
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -109,7 +139,17 @@ serve(async (req) => {
       .select();
 
     if (error) {
-      throw new Error(`Database error: ${error.message}`);
+      console.error("Database error inserting report:", error);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: `Database error: ${error.message}`
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     // Log successful operation
@@ -126,16 +166,18 @@ serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error('Error processing request:', error.message);
+    console.error('Error processing request:', error);
+    // Type assertion for error handling
+    const errorMessage = error instanceof Error ? error.message : String(error);
     
     return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: error.message 
+      JSON.stringify({
+        success: false,
+        error: errorMessage
       }),
-      { 
-        status: 400, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      {
+        status: 500, // Use 500 for unexpected server errors
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
   }

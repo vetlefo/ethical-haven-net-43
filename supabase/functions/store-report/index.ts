@@ -50,7 +50,17 @@ serve(async (req) => {
   try {
     // Only allow POST method
     if (req.method !== 'POST') {
-      throw new Error('Method not allowed. Only POST requests are supported.');
+      console.error("Method not allowed:", req.method);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Method not allowed. Only POST requests are supported.'
+        }),
+        {
+          status: 405,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     // Get the authorization header
@@ -111,6 +121,7 @@ serve(async (req) => {
 
     console.log('Authenticated user:', user.id, user.email);
 
+    // TODO: Refactor admin check to use Supabase custom claims instead of hardcoded email
     // Check if user is admin (you can modify this check based on your needs)
     // For example, you might check if the user's email matches an admin email
     const isAdmin = user.email === 'vetle@reprint.ink';
@@ -234,13 +245,16 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error processing request:', error);
     
+    // Type assertion for error handling
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    
     return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: error.message || 'Unknown error occurred'
+      JSON.stringify({
+        success: false,
+        error: errorMessage
       }),
-      { 
-        status: 500, 
+      {
+        status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
     );

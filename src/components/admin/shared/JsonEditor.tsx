@@ -8,6 +8,8 @@ interface JsonEditorProps {
   label: string;
   placeholder?: string;
   description?: string;
+  readOnly?: boolean; // Add readOnly prop
+  height?: string; // Add height prop
 }
 
 const JsonEditor: React.FC<JsonEditorProps> = ({
@@ -15,7 +17,9 @@ const JsonEditor: React.FC<JsonEditorProps> = ({
   onChange,
   label,
   placeholder = "Enter JSON",
-  description
+  description,
+  readOnly = false, // Default readOnly to false
+  height = "200px" // Default height
 }) => {
   return (
     <div>
@@ -24,9 +28,11 @@ const JsonEditor: React.FC<JsonEditorProps> = ({
       </label>
       <Textarea
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => !readOnly && onChange(e.target.value)} // Only call onChange if not readOnly
         placeholder={placeholder}
-        className="w-full min-h-[200px] font-mono text-sm bg-cyber-slate border-cyber-blue/30 text-cyber-light"
+        readOnly={readOnly} // Pass readOnly to Textarea
+        className="w-full font-mono text-sm bg-cyber-slate border-cyber-blue/30 text-cyber-light"
+        style={{ minHeight: height }} // Apply dynamic height
       />
       {description && (
         <p className="text-xs text-cyber-light/70 mt-1">

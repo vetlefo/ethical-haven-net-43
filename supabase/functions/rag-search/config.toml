@@ -1,0 +1,17 @@
+# Default Supabase Edge Function config
+# See https://supabase.com/docs/guides/functions/config
+
+[import_map]
+# Add any necessary import map entries here if needed
+
+[browser]
+main = "index.ts"
+
+[experimental_deploy_watch]
+enabled = true
+ignored_files = [".gitignore", "README.md"]
+
+# Enable JWT verification if this endpoint requires user authentication
+[auth.jwt]
+enabled = true
+claim_mappings = ["user_id", "role"] # Adjust as needed

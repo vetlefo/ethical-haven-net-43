@@ -27,7 +27,17 @@ serve(async (req) => {
   try {
     // Only allow POST method
     if (req.method !== 'POST') {
-      throw new Error('Method not allowed. Only POST requests are supported.');
+      console.error("Method not allowed:", req.method);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Method not allowed. Only POST requests are supported.'
+        }),
+        {
+          status: 405,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     // Verify admin key
@@ -53,17 +63,20 @@ serve(async (req) => {
     
     // Validate the document structure
     if (!ragData.documentId || !ragData.chunks || !Array.isArray(ragData.chunks)) {
-      throw new Error('Invalid RAG document structure');
+      console.error("Invalid RAG document structure received:", ragData);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Invalid RAG document structure. Required fields: documentId, chunks (array).'
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
-    console.log(`Processing RAG document ID ${ragData.documentId} with ${ragData.chunks.length} chunks`);
-    
-    // Verify that the chunks have embeddings
-    for (const chunk of ragData.chunks) {
-      if (!chunk.embedding || !Array.isArray(chunk.embedding)) {
-        console.warn(`Chunk ${chunk.id} is missing embeddings or embeddings is not an array`);
-      }
-    }
+    console.log(`Storing RAG document ID ${ragData.documentId} with ${ragData.chunks.length} chunks (embeddings will be generated async)...`);
     
     // First, store the document metadata
     const { error: docError } = await supabase
@@ -83,57 +96,82 @@ serve(async (req) => {
     
     if (docError) {
       console.error('Error storing document metadata:', docError);
-      throw new Error(`Failed to store document metadata: ${docError.message}`);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: `Failed to store document metadata: ${docError.message}`
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
     
-    // Then store each chunk
+    // Then store each chunk, setting embedding to NULL.
+    // The DB trigger will handle calling the embedding function asynchronously.
     const chunkInsertPromises = ragData.chunks.map(chunk => {
+      // Ensure chunk.id exists, generate if needed (though frontend should ideally provide)
+      const chunk_id = chunk.id || `chunk-${ragData.documentId}-${chunk.metadata?.position || Math.random().toString(36).substring(2)}`;
       return supabase
         .from('rag_chunks')
         .upsert({
           document_id: ragData.documentId,
-          chunk_id: chunk.id,
+          chunk_id: chunk_id,
           text: chunk.text,
           section: chunk.metadata?.section,
           position: chunk.metadata?.position,
           source: chunk.metadata?.source,
-          embedding: chunk.embedding
-        });
+          embedding: null, // Set embedding to null initially
+          embedding_status: 'pending' // Explicitly set status (or rely on DB default)
+        }, { onConflict: 'document_id, chunk_id' }); // Specify conflict target
     });
     
     // Wait for all chunk inserts to complete
     const chunkResults = await Promise.all(chunkInsertPromises);
     
-    // Check for any errors
+    // Check for any errors during insert
     const chunkErrors = chunkResults.filter(result => result.error);
     if (chunkErrors.length > 0) {
-      console.error('Errors storing chunks:', chunkErrors);
-      throw new Error(`Failed to store some chunks: ${chunkErrors[0].error.message}`);
+      console.error('Errors storing chunks:', chunkErrors.map(e => e.error));
+      // Return error for the first chunk failure encountered
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: `Failed to store some chunks: ${chunkErrors[0].error.message}`
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
     
-    // Return success
+    // Return success - indicating chunks are queued for embedding
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: `Successfully stored document ${ragData.documentId} with ${ragData.chunks.length} chunks in the vector database`,
+      JSON.stringify({
+        success: true,
+        message: `Successfully queued ${ragData.chunks.length} chunks from document ${ragData.documentId} for embedding generation.`,
         documentId: ragData.documentId
       }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
     
   } catch (error) {
     console.error('Error processing RAG embeddings:', error);
+    // Type assertion for error handling
+    const errorMessage = error instanceof Error ? error.message : String(error);
     
     return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: error.message 
+      JSON.stringify({
+        success: false,
+        error: errorMessage
       }),
-      { 
-        status: 400, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      {
+        status: 500, // Use 500 for unexpected server errors
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
   }

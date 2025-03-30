@@ -4,6 +4,7 @@ import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import 'xterm/css/xterm.css';
 import { Link, useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client'; // Import Supabase client
 
 interface MarketDataTerminalProps {
   interactive?: boolean;
@@ -232,6 +233,13 @@ const MarketDataTerminal: React.FC<MarketDataTerminalProps> = ({ interactive = f
           }
         ];
       }
+    },
+    ask: {
+      description: 'Ask a question about compliance topics (e.g., `ask what is LkSG?`)',
+      response: (): CommandResponse[] => {
+        // This will be handled asynchronously in processCommand
+        return [{ type: 'text', content: 'Processing your question...\n' }];
+      }
     }
   };
 
@@ -301,63 +309,74 @@ const MarketDataTerminal: React.FC<MarketDataTerminalProps> = ({ interactive = f
     term.current?.write('\r\n$ ');
   };
 
-  const processCommand = () => {
+  const processCommand = async () => { // Make async
     term.current?.write('\r\n');
-    const command = currentCommand.trim();
-    if (command.length === 0) {
+    const commandInput = currentCommand.trim(); // Rename to avoid conflict
+    if (commandInput.length === 0) { // Use commandInput
       printPrompt();
       setCurrentCommand('');
       return;
     }
 
-    setCommandHistory(prevHistory => {
-      const newHistory = [...prevHistory, command];
-      return newHistory;
-    });
-    setHistoryIndex(-1);
+    // Add command to history
+    setCommandHistory(prevHistory => [...prevHistory, commandInput]); // Use commandInput
+    setHistoryIndex(-1); // Reset history index
+    setCurrentCommand(''); // Clear current command input
 
-    const [baseCommand, ...args] = command.split(' ');
+    const [baseCommand, ...args] = commandInput.split(' '); // Use commandInput
     const cmd = commands[baseCommand];
 
-    if (cmd) {
+    if (baseCommand === 'ask') {
+      const query = args.join(' ');
+      if (!query) {
+        term.current?.write('Please provide a question after the ask command.\n');
+        printPrompt();
+        return;
+      }
+
+      term.current?.write('Processing your question...\r\n');
+      try {
+        // Call the RAG search function
+        const { data, error } = await supabase.functions.invoke('rag-search', {
+          body: { query },
+        });
+
+        if (error) {
+          console.error("RAG search error:", error);
+          term.current?.write(`\x1b[31mError: ${error.message || 'Failed to process query.'}\x1b[0m\n`);
+        } else if (data && data.success) {
+          term.current?.write(`\x1b[32mAnswer:\x1b[0m ${data.answer}\n`);
+          if (data.sources && data.sources.length > 0) {
+            term.current?.write('\n\x1b[34mSources:\x1b[0m\n');
+            data.sources.forEach((source: any, index: number) => {
+              term.current?.write(` [${index + 1}] Doc: ${source.document_id}, Chunk: ${source.chunk_id} (Similarity: ${source.similarity?.toFixed(3)})\n`);
+            });
+          }
+        } else {
+          term.current?.write(`\x1b[31mError: ${data?.error || 'Received unexpected response from server.'}\x1b[0m\n`);
+        }
+      } catch (invokeError) {
+        console.error("Error invoking RAG search function:", invokeError);
+        const errorMessage = invokeError instanceof Error ? invokeError.message : 'An unknown error occurred during the search.';
+        term.current?.write(`\x1b[31mError: ${errorMessage}\x1b[0m\n`);
+      }
+    } else if (cmd) {
+      // Handle predefined synchronous commands
       const responses = cmd.response(args);
       responses.forEach(response => {
         if (response.type === 'text') {
           term.current?.write(response.content);
         } else if (response.type === 'link' && response.url) {
-          // Use a regular expression to find the text to underline
+          // Link handling (simplified, no absolute positioning)
           const match = response.content.match(/(.*): (.*)/);
           if (match) {
             const [, beforeLink, linkText] = match;
             term.current?.write(beforeLink + ': ');
-            
-            // Write the link text with underline
-            term.current?.write('\x1b[4m' + linkText + '\x1b[0m');
-
-            // Create a clickable link element
-            if (term.current && term.current.element) {
-              const linkElement = document.createElement('a');
-              linkElement.href = response.url;
-              linkElement.style.position = 'absolute';
-              
-              // Approximate position - we can't use _core anymore
-              const terminalRect = term.current.element.getBoundingClientRect();
-              const charWidth = terminalRect.width / 80; // Approximate character width
-              const lineHeight = 20; // Approximate line height
-              
-              linkElement.style.left = `${charWidth * (beforeLink.length + 2) + 10}px`;
-              linkElement.style.top = `${lineHeight + 10}px`;
-              linkElement.style.width = `${linkText.length * charWidth}px`;
-              linkElement.style.height = `${lineHeight}px`;
-              linkElement.style.opacity = '0';
-              linkElement.onclick = (e) => {
-                e.preventDefault();
-                navigate(response.url!);
-              };
-              
-              term.current.element.appendChild(linkElement);
-            }
-            
+            // Underline link text and make it navigable via router
+            term.current?.write(`\x1b[4m${linkText.trim()}\x1b[0m`); // Underline
+            // Note: Making terminal text directly clickable to navigate is complex with xterm.js
+            // We rely on the user copying/pasting or recognizing the URL pattern.
+            // Or potentially adding a separate clickable element outside the terminal.
             term.current?.write('\r\n');
           } else {
             term.current?.write(response.content);
@@ -365,11 +384,11 @@ const MarketDataTerminal: React.FC<MarketDataTerminalProps> = ({ interactive = f
         }
       });
     } else {
-      term.current?.write(`Command not found: ${command}\r\n`);
+      term.current?.write(`Command not found: ${baseCommand}\r\n`); // Use baseCommand
     }
 
     printPrompt();
-    setCurrentCommand('');
+    // setCurrentCommand(''); // Already cleared at the start of processing
   };
 
   return (
