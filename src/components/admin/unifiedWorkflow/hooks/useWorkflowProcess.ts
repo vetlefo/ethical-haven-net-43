@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { TerminalStore } from '@/pages/Admin';
+import { logToTerminal } from '@/utils/terminalLogger';
 import { ProcessStatus } from '../Steps';
 
 export const useWorkflowProcess = () => {
@@ -20,7 +20,7 @@ export const useWorkflowProcess = () => {
         description: 'Please enter your admin API key',
         variant: 'destructive',
       });
-      TerminalStore.addLine(`Error: Admin API key is required`);
+      logToTerminal(`Error: Admin API key is required`);
       return;
     }
 
@@ -30,7 +30,7 @@ export const useWorkflowProcess = () => {
         description: 'Please enter the raw content to process',
         variant: 'destructive',
       });
-      TerminalStore.addLine(`Error: No content provided for processing`);
+      logToTerminal(`Error: No content provided for processing`);
       return;
     }
 
@@ -45,7 +45,7 @@ export const useWorkflowProcess = () => {
           description: 'Please log in to process content',
           variant: 'destructive',
         });
-        TerminalStore.addLine(`Error: Authentication required for content processing`);
+        logToTerminal(`Error: Authentication required for content processing`);
         return;
       }
       
@@ -55,14 +55,14 @@ export const useWorkflowProcess = () => {
       setProcessingStep(0);
       
       // Step 1: Transform content
-      TerminalStore.addLine(`Starting unified workflow process for ${contentType} content...`);
-      TerminalStore.addLine(`Step 1: Transforming raw content...`);
-      TerminalStore.addLine(`Content length: ${rawContent.length} characters`);
-      TerminalStore.addLine(`Content type: ${contentType}`);
+      logToTerminal(`Starting unified workflow process for ${contentType} content...`);
+      logToTerminal(`Step 1: Transforming raw content...`);
+      logToTerminal(`Content length: ${rawContent.length} characters`);
+      logToTerminal(`Content type: ${contentType}`);
       
       // Log a small sample of the content for debugging
       if (rawContent.length > 50) {
-        TerminalStore.addLine(`Content preview: ${rawContent.substring(0, 50)}...`);
+        logToTerminal(`Content preview: ${rawContent.substring(0, 50)}...`);
       }
       
       // Create a proper stringified JSON payload
@@ -71,11 +71,11 @@ export const useWorkflowProcess = () => {
         contentType: contentType
       };
       
-      TerminalStore.addLine(`Sending request to generate-report with payload: ${JSON.stringify(requestPayload, null, 2)}`);
+      logToTerminal(`Sending request to generate-report with payload: ${JSON.stringify(requestPayload, null, 2)}`);
       
       // Use a direct fetch call with proper headers to ensure correct content type
-      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL || 'https://kxvjrktpadujfcxpfuxi.supabase.co'}/functions/v1/generate-report`;
-      const apiKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt4dmpya3RwYWR1amZjeHBmdXhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI2MTkwMzksImV4cCI6MjA1ODE5NTAzOX0.HKDNvLzo8FV1bVk-CNxV2dZ-CCV8NaIrYP_q3ciXHII';
+      const apiUrl = `https://kxvjrktpadujfcxpfuxi.supabase.co/functions/v1/generate-report`;
+      const apiKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt4dmpya3RwYWR1amZjeHBmdXhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI2MTkwMzksImV4cCI6MjA1ODE5NTAzOX0.HKDNvLzo8FV1bVk-CNxV2dZ-CCV8NaIrYP_q3ciXHII';
       
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -89,27 +89,27 @@ export const useWorkflowProcess = () => {
       
       if (!response.ok) {
         const errorText = await response.text();
-        TerminalStore.addLine(`Transformation error: Status ${response.status}, Response: ${errorText}`);
+        logToTerminal(`Transformation error: Status ${response.status}, Response: ${errorText}`);
         throw new Error(`Transformation error: Edge Function returned a non-2xx status code`);
       }
       
       const transformData = await response.json();
       
       if (!transformData || transformData.success === false) {
-        TerminalStore.addLine(`Transformation failed: ${transformData?.error || 'Unknown error'}`);
+        logToTerminal(`Transformation failed: ${transformData?.error || 'Unknown error'}`);
         throw new Error(transformData?.error || 'Failed to transform content');
       }
       
       const reportJson = transformData.reportJson;
-      TerminalStore.addLine(`Content transformation completed successfully`);
+      logToTerminal(`Content transformation completed successfully`);
       
       let parsedReport;
       try {
         parsedReport = JSON.parse(reportJson);
-        TerminalStore.addLine(`Generated report with title: "${parsedReport.title}"`);
+        logToTerminal(`Generated report with title: "${parsedReport.title}"`);
       } catch (parseError) {
-        TerminalStore.addLine(`Error parsing report JSON: ${parseError.message}`);
-        TerminalStore.addLine(`Raw JSON: ${reportJson.substring(0, 100)}...`);
+        logToTerminal(`Error parsing report JSON: ${parseError.message}`);
+        logToTerminal(`Raw JSON: ${reportJson.substring(0, 100)}...`);
         throw new Error(`Failed to parse report JSON: ${parseError.message}`);
       }
       
@@ -121,8 +121,8 @@ export const useWorkflowProcess = () => {
       setProcessingStep(1);
       setCurrentStep(2);
       
-      TerminalStore.addLine(`Step 2: Storing report in database...`);
-      TerminalStore.addLine(`Report has is_rag_enabled flag set to: ${parsedReport.is_rag_enabled}`);
+      logToTerminal(`Step 2: Storing report in database...`);
+      logToTerminal(`Report has is_rag_enabled flag set to: ${parsedReport.is_rag_enabled}`);
       
       const { data: storeData, error: storeError } = await supabase.functions.invoke('store-report', {
         body: parsedReport,
@@ -133,18 +133,18 @@ export const useWorkflowProcess = () => {
       });
       
       if (storeError) {
-        TerminalStore.addLine(`Storage error: ${storeError.message}`);
+        logToTerminal(`Storage error: ${storeError.message}`);
         throw new Error(`Storage error: ${storeError.message}`);
       }
       
-      TerminalStore.addLine(`Report stored successfully in database`);
+      logToTerminal(`Report stored successfully in database`);
       
       // Step 3: Process for RAG (optional)
       setProcessStatus(['completed', 'completed', 'processing']);
       setProcessingStep(2);
       setCurrentStep(3);
       
-      TerminalStore.addLine(`Step 3: Processing for RAG embeddings...`);
+      logToTerminal(`Step 3: Processing for RAG embeddings...`);
       
       const { data: ragData, error: ragError } = await supabase.functions.invoke('process-for-rag', {
         body: {
@@ -158,12 +158,12 @@ export const useWorkflowProcess = () => {
       });
       
       if (ragError) {
-        TerminalStore.addLine(`Warning: RAG processing error: ${ragError.message}`);
-        TerminalStore.addLine(`Report was saved successfully, but RAG embeddings failed`);
+        logToTerminal(`Warning: RAG processing error: ${ragError.message}`);
+        logToTerminal(`Report was saved successfully, but RAG embeddings failed`);
         setProcessStatus(['completed', 'completed', 'error']);
       } else {
         setProcessStatus(['completed', 'completed', 'completed']);
-        TerminalStore.addLine(`RAG processing completed successfully`);
+        logToTerminal(`RAG processing completed successfully`);
       }
       
       // Success message regardless of RAG outcome (because the report is saved)
@@ -182,7 +182,7 @@ export const useWorkflowProcess = () => {
       currentStatusCopy[processingStep] = 'error';
       setProcessStatus(currentStatusCopy);
       
-      TerminalStore.addLine(`Error in unified workflow: ${error.message}`);
+      logToTerminal(`Error in unified workflow: ${error.message}`);
       
       toast({
         title: 'Process Error',

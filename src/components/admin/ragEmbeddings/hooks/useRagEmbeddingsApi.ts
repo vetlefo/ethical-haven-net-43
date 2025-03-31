@@ -1,7 +1,7 @@
 
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { TerminalStore } from '@/pages/Admin';
+import { logToTerminal } from '@/utils/terminalLogger';
 
 interface ProcessContentParams {
   rawContent: string;
@@ -22,12 +22,12 @@ export const useRagEmbeddingsApi = () => {
         description: 'Please enter the raw report content to process',
         variant: 'destructive',
       });
-      TerminalStore.addLine(`Error: No content provided for RAG processing`);
+      logToTerminal(`Error: No content provided for RAG processing`);
       throw new Error('Content is required');
     }
 
-    TerminalStore.addLine(`Starting ${contentType} content processing for RAG...`);
-    TerminalStore.addLine(`Calling process-for-rag function...`);
+    logToTerminal(`Starting ${contentType} content processing for RAG...`);
+    logToTerminal(`Calling process-for-rag function...`);
     
     const { data, error } = await supabase.functions.invoke('process-for-rag', {
       body: {
@@ -38,17 +38,17 @@ export const useRagEmbeddingsApi = () => {
     
     if (error) {
       console.error('Error from Supabase function:', error);
-      TerminalStore.addLine(`Error from Supabase function: ${error.message}`);
+      logToTerminal(`Error from Supabase function: ${error.message}`);
       throw new Error(error.message || 'Failed to process content');
     }
     
     if (!data) {
-      TerminalStore.addLine(`Error: No data returned from the RAG processing function`);
+      logToTerminal(`Error: No data returned from the RAG processing function`);
       throw new Error('No data returned from the function');
     }
     
     if (!data.processedContent) {
-      TerminalStore.addLine(`Error: Response is missing processedContent field`);
+      logToTerminal(`Error: Response is missing processedContent field`);
       throw new Error('Response is missing processedContent field');
     }
     
@@ -56,13 +56,13 @@ export const useRagEmbeddingsApi = () => {
     try {
       const contentData = JSON.parse(data.processedContent);
       if (Array.isArray(contentData)) {
-        TerminalStore.addLine(`Processed ${contentData.length} items ready for database insertion`);
+        logToTerminal(`Processed ${contentData.length} items ready for database insertion`);
       } else {
-        TerminalStore.addLine(`Generated a document with ID: ${contentData.document_id || 'unknown'}`);
+        logToTerminal(`Generated a document with ID: ${contentData.document_id || 'unknown'}`);
       }
-      TerminalStore.addLine(`RAG processing completed successfully`);
+      logToTerminal(`RAG processing completed successfully`);
     } catch (e) {
-      TerminalStore.addLine(`Warning: Could not parse processed content as JSON`);
+      logToTerminal(`Warning: Could not parse processed content as JSON`);
     }
     
     return data.processedContent;
@@ -75,7 +75,7 @@ export const useRagEmbeddingsApi = () => {
         description: 'Please enter your admin API key',
         variant: 'destructive',
       });
-      TerminalStore.addLine(`Error: Admin API key is required for submission`);
+      logToTerminal(`Error: Admin API key is required for submission`);
       throw new Error('Admin API key is required');
     }
 
@@ -85,18 +85,18 @@ export const useRagEmbeddingsApi = () => {
         description: 'Please process the raw content first',
         variant: 'destructive',
       });
-      TerminalStore.addLine(`Error: No processed content to submit`);
+      logToTerminal(`Error: No processed content to submit`);
       throw new Error('No processed content');
     }
 
-    TerminalStore.addLine(`Submitting processed ${contentType} content to database...`);
+    logToTerminal(`Submitting processed ${contentType} content to database...`);
     
     // Parse the JSON input
     const contentData = JSON.parse(processedContent);
     
     // Determine the endpoint and invoke the appropriate function
     if (contentType === 'competitive-intel') {
-      TerminalStore.addLine(`Using admin-competitive-intel function...`);
+      logToTerminal(`Using admin-competitive-intel function...`);
       const { data, error } = await supabase.functions.invoke('admin-competitive-intel', {
         body: contentData,
         headers: {
@@ -110,11 +110,11 @@ export const useRagEmbeddingsApi = () => {
       
       // Log the response from the function
       if (data) {
-        TerminalStore.addLine(`Database response: ${JSON.stringify(data)}`);
+        logToTerminal(`Database response: ${JSON.stringify(data)}`);
       }
     } else {
       // For RAG embeddings
-      TerminalStore.addLine(`Using admin-rag-embeddings function...`);
+      logToTerminal(`Using admin-rag-embeddings function...`);
       const { data, error } = await supabase.functions.invoke('admin-rag-embeddings', {
         body: contentData,
         headers: {
@@ -128,12 +128,12 @@ export const useRagEmbeddingsApi = () => {
       
       // Log the response from the function
       if (data) {
-        TerminalStore.addLine(`Database response: ${JSON.stringify(data)}`);
+        logToTerminal(`Database response: ${JSON.stringify(data)}`);
       }
     }
     
-    TerminalStore.addLine(`Content successfully saved to database`);
-    TerminalStore.addLine(`You can now query this data using the search endpoint`);
+    logToTerminal(`Content successfully saved to database`);
+    logToTerminal(`You can now query this data using the search endpoint`);
   };
 
   return {

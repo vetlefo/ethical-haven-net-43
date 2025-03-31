@@ -1,8 +1,7 @@
-
 import { useState } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { TerminalStore } from '@/pages/Admin';
+import { logToTerminal } from '@/utils/terminalLogger';
 import { ProcessStatus } from '@/components/admin/unifiedWorkflow/Steps';
 
 export type ResultData = {
@@ -23,12 +22,6 @@ export const useContentProcessing = () => {
     'waiting', 'waiting', 'waiting', 'waiting'
   ]);
   const [result, setResult] = useState<ResultData>(null);
-
-  const logTerminal = (message: string) => {
-    if (TerminalStore && TerminalStore.addLine) {
-      TerminalStore.addLine(`RAG Processor: ${message}`);
-    }
-  };
 
   const resetProcessing = () => {
     setCurrentStep(0);
@@ -61,7 +54,7 @@ export const useContentProcessing = () => {
       setResult(null);
 
       // --- Step 1: Process with Gemini (Generate Report) ---
-      logTerminal("Step 1 - Generating initial report structure...");
+      logToTerminal("Step 1 - Generating initial report structure...");
       setProcessingStep(0); // Mark current step for error reporting
 
       const authSession = await supabase.auth.getSession();
@@ -70,44 +63,44 @@ export const useContentProcessing = () => {
         throw new Error('Authentication required. Please log in again.');
       }
 
-      logTerminal(`Content type: ${contentType}, Content length: ${rawContent.length} characters`);
+      logToTerminal(`Content type: ${contentType}, Content length: ${rawContent.length} characters`);
       if (rawContent.length > 50) {
-        logTerminal(`Content preview: ${rawContent.substring(0, 50)}...`);
+        logToTerminal(`Content preview: ${rawContent.substring(0, 50)}...`);
       }
 
       const generateReportPayload = {
         prompt: rawContent,
         contentType: contentType
       };
-      logTerminal(`Calling 'generate-report' function...`);
+      logToTerminal(`Calling 'generate-report' function...`);
       const { data: transformData, error: transformError } = await supabase.functions.invoke('generate-report', {
         body: generateReportPayload,
         headers: { 'Authorization': `Bearer ${authToken}` }
       });
 
       if (transformError) {
-        logTerminal(`Error from 'generate-report': ${transformError.message}`);
+        logToTerminal(`Error from 'generate-report': ${transformError.message}`);
         throw new Error(transformError.message || 'Failed to generate initial report');
       }
       if (!transformData || transformData.success === false || !transformData.reportJson) {
         const errorMsg = transformData?.error || 'Report generation service returned invalid data or failed';
-        logTerminal(`'generate-report' failed: ${errorMsg}`);
+        logToTerminal(`'generate-report' failed: ${errorMsg}`);
         throw new Error(errorMsg);
       }
 
       let parsedReport;
       try {
         parsedReport = JSON.parse(transformData.reportJson);
-        logTerminal(`Successfully parsed generated report: ${parsedReport.title || '(No Title)'}`);
+        logToTerminal(`Successfully parsed generated report: ${parsedReport.title || '(No Title)'}`);
       } catch (e: any) {
-        logTerminal(`Failed to parse report JSON from 'generate-report': ${e.message}`);
-        logTerminal(`Raw JSON preview: ${transformData.reportJson.substring(0, 100)}...`);
+        logToTerminal(`Failed to parse report JSON from 'generate-report': ${e.message}`);
+        logToTerminal(`Raw JSON preview: ${transformData.reportJson.substring(0, 100)}...`);
         throw new Error(`Failed to parse generated report JSON: ${e.message}`);
       }
       updateProcessStatus(0, 'completed');
 
       // --- Step 2: Chunk the content ---
-      logTerminal("Step 2 - Chunking content...");
+      logToTerminal("Step 2 - Chunking content...");
       setProcessingStep(1); // Mark current step
 
       const paragraphs = rawContent.split(/\n\s*\n/);
@@ -116,11 +109,11 @@ export const useContentProcessing = () => {
         position: i,
         chunkId: `chunk-${i + 1}`
       })).filter(chunk => chunk.text.length > 0);
-      logTerminal(`Created ${chunks.length} chunks from content`);
+      logToTerminal(`Created ${chunks.length} chunks from content`);
       updateProcessStatus(1, 'completed');
 
       // --- Step 3: Generate embeddings ---
-      logTerminal("Step 3 - Generating embeddings...");
+      logToTerminal("Step 3 - Generating embeddings...");
       setProcessingStep(2); // Mark current step
 
       const processRagPayload = {
@@ -128,14 +121,14 @@ export const useContentProcessing = () => {
         contentType,
         generateEmbeddings: true // Explicitly request embeddings
       };
-      logTerminal(`Calling 'process-for-rag' function...`);
+      logToTerminal(`Calling 'process-for-rag' function...`);
       const { data: embeddingData, error: embeddingError } = await supabase.functions.invoke('process-for-rag', {
         body: processRagPayload,
         headers: { 'Authorization': `Bearer ${authToken}` }
       });
 
       if (embeddingError) {
-        logTerminal(`Error from 'process-for-rag': ${embeddingError.message}`);
+        logToTerminal(`Error from 'process-for-rag': ${embeddingError.message}`);
         // Decide if this is critical - for now, let's make it blocking
         throw new Error(embeddingError.message || 'Failed to generate embeddings');
       }
@@ -143,38 +136,38 @@ export const useContentProcessing = () => {
       // And processedContent contains the RAG structure with embeddings
       if (!embeddingData || embeddingData.success === false || !embeddingData.processedContent) {
          const errorMsg = embeddingData?.error || 'Embedding generation failed or returned invalid data';
-         logTerminal(`'process-for-rag' failed: ${errorMsg}`);
+         logToTerminal(`'process-for-rag' failed: ${errorMsg}`);
          throw new Error(errorMsg);
       }
       // We might need to parse embeddingData.processedContent if we need the embeddings later
-      logTerminal("Embeddings processed successfully (or function call succeeded)");
+      logToTerminal("Embeddings processed successfully (or function call succeeded)");
       updateProcessStatus(2, 'completed');
 
       // --- Step 4: Store Report in Database ---
-      logTerminal("Step 4 - Storing report in database...");
+      logToTerminal("Step 4 - Storing report in database...");
       setProcessingStep(3); // Mark current step
 
       // Add RAG enabled flag to the report generated in Step 1
       parsedReport.is_rag_enabled = true;
-      logTerminal(`Adding is_rag_enabled flag: ${parsedReport.is_rag_enabled}`);
+      logToTerminal(`Adding is_rag_enabled flag: ${parsedReport.is_rag_enabled}`);
 
-      logTerminal(`Calling 'store-report' function...`);
+      logToTerminal(`Calling 'store-report' function...`);
       const { data: storeData, error: storeError } = await supabase.functions.invoke('store-report', {
         body: parsedReport, // Send the report object generated in Step 1
         headers: { 'Authorization': `Bearer ${authToken}` }
       });
 
       if (storeError) {
-        logTerminal(`Error from 'store-report': ${storeError.message}`);
+        logToTerminal(`Error from 'store-report': ${storeError.message}`);
         throw new Error(storeError.message || 'Failed to store report');
       }
       // Assuming store-report returns { success: boolean, report?: { id: string }, error?: string }
       if (!storeData || storeData.success === false || !storeData.report || !storeData.report.id) {
         const errorMsg = storeData?.error || 'Storing report failed or returned invalid data';
-        logTerminal(`'store-report' failed: ${errorMsg}`);
+        logToTerminal(`'store-report' failed: ${errorMsg}`);
         throw new Error(errorMsg);
       }
-      logTerminal(`Report stored successfully with ID: ${storeData.report.id}`);
+      logToTerminal(`Report stored successfully with ID: ${storeData.report.id}`);
       updateProcessStatus(3, 'completed');
 
       // --- Process Complete ---

@@ -2,7 +2,7 @@
 import { useState, useCallback } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { TerminalStore } from '@/pages/Admin';
+import { logToTerminal } from '@/utils/terminalLogger';
 import { useReportSubmission } from './useReportSubmission';
 
 export interface UseReportGenerationProps {
@@ -32,15 +32,15 @@ export const useReportGeneration = ({ setActiveTab }: UseReportGenerationProps) 
         description: 'Please enter a detailed prompt or paste the raw report content to transform',
         variant: 'destructive',
       });
-      TerminalStore.addLine(`Error: No prompt content provided for report generation`);
+      logToTerminal(`Error: No prompt content provided for report generation`);
       return;
     }
 
     try {
       setIsGenerating(true);
-      TerminalStore.addLine(`Starting report generation process...`);
+      logToTerminal(`Starting report generation process...`);
       
-      TerminalStore.addLine(`Sending request to generate-report function...`);
+      logToTerminal(`Sending request to generate-report function...`);
       const { data, error } = await supabase.functions.invoke('generate-report', {
         body: {
           prompt
@@ -48,12 +48,12 @@ export const useReportGeneration = ({ setActiveTab }: UseReportGenerationProps) 
       });
       
       if (error) {
-        TerminalStore.addLine(`Error from generate-report function: ${error.message}`);
+        logToTerminal(`Error from generate-report function: ${error.message}`);
         throw new Error(error.message || 'Failed to generate report');
       }
       
       if (!data || data.success === false) {
-        TerminalStore.addLine(`Report generation failed: ${data?.error || 'Unknown error'}`);
+        logToTerminal(`Report generation failed: ${data?.error || 'Unknown error'}`);
         throw new Error(data?.error || 'Failed to generate report');
       }
       
@@ -61,7 +61,7 @@ export const useReportGeneration = ({ setActiveTab }: UseReportGenerationProps) 
       setIsValid(true);
       setActiveTab('result');
       
-      TerminalStore.addLine(`Report generation completed successfully`);
+      logToTerminal(`Report generation completed successfully`);
       
       toast({
         title: 'Report Transformed',
@@ -70,7 +70,7 @@ export const useReportGeneration = ({ setActiveTab }: UseReportGenerationProps) 
       
     } catch (error: any) {
       console.error('Error generating report:', error);
-      TerminalStore.addLine(`Error generating report: ${error.message}`);
+      logToTerminal(`Error generating report: ${error.message}`);
       toast({
         title: 'Transformation Error',
         description: error.message || 'Failed to transform report',

@@ -72,6 +72,8 @@ export type Database = {
           created_at: string | null
           document_id: string
           embedding: string | null
+          embedding_error: string | null
+          embedding_status: string
           id: string
           position: number | null
           section: string | null
@@ -83,6 +85,8 @@ export type Database = {
           created_at?: string | null
           document_id: string
           embedding?: string | null
+          embedding_error?: string | null
+          embedding_status?: string
           id?: string
           position?: number | null
           section?: string | null
@@ -94,6 +98,8 @@ export type Database = {
           created_at?: string | null
           document_id?: string
           embedding?: string | null
+          embedding_error?: string | null
+          embedding_status?: string
           id?: string
           position?: number | null
           section?: string | null
@@ -121,6 +127,7 @@ export type Database = {
           id: string
           region: string | null
           regulations: string[] | null
+          source_identifier: string | null
           summary: string | null
           title: string
           updated_at: string | null
@@ -135,6 +142,7 @@ export type Database = {
           id?: string
           region?: string | null
           regulations?: string[] | null
+          source_identifier?: string | null
           summary?: string | null
           title: string
           updated_at?: string | null
@@ -149,6 +157,7 @@ export type Database = {
           id?: string
           region?: string | null
           regulations?: string[] | null
+          source_identifier?: string | null
           summary?: string | null
           title?: string
           updated_at?: string | null
@@ -270,6 +279,36 @@ export type Database = {
               "": unknown
             }
             Returns: unknown
+          }
+      match_rag_chunks:
+        | {
+            Args: {
+              query_embedding: string
+              match_threshold: number
+              match_count: number
+            }
+            Returns: {
+              chunk_id: string
+              document_id: string
+              text: string
+              similarity: number
+            }[]
+          }
+        | {
+            Args: {
+              query_embedding: string
+              match_threshold: number
+              match_count: number
+              filter_category?: string
+              filter_regulation?: string
+              filter_country?: string
+            }
+            Returns: {
+              chunk_id: string
+              document_id: string
+              text: string
+              similarity: number
+            }[]
           }
       search_rag_documents: {
         Args: {

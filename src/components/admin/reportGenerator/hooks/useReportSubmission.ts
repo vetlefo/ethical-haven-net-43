@@ -1,10 +1,9 @@
 
 import { useState } from 'react';
 import { toast } from '@/hooks/use-toast';
-// Import the helper function instead of the class directly for logging
-import { addTerminalLine } from '@/pages/Admin';
+import { logToTerminal } from '@/utils/terminalLogger';
 import { getAuthToken } from '@/utils/authUtils';
-import { supabase } from '@/integrations/supabase/client'; // Import supabase client
+import { supabase } from '@/integrations/supabase/client';
 
 export interface UseReportSubmissionProps {
   setActiveTab: (tab: string) => void;
@@ -21,8 +20,7 @@ export const useReportSubmission = ({ setActiveTab }: UseReportSubmissionProps) 
         description: 'Please enter your admin API key',
         variant: 'destructive',
       });
-      // Use helper function
-      addTerminalLine(`Error: Admin API key required for report submission`);
+      logToTerminal(`Error: Admin API key required for report submission`);
       return;
     }
 
@@ -32,8 +30,7 @@ export const useReportSubmission = ({ setActiveTab }: UseReportSubmissionProps) 
         description: 'Please generate a report first',
         variant: 'destructive',
       });
-      // Use helper function
-      addTerminalLine(`Error: No report to submit`);
+      logToTerminal(`Error: No report to submit`);
       return;
     }
 
@@ -43,8 +40,7 @@ export const useReportSubmission = ({ setActiveTab }: UseReportSubmissionProps) 
         description: 'The report contains invalid JSON. Please fix it before submitting.',
         variant: 'destructive',
       });
-      // Use helper function
-      addTerminalLine(`Error: Invalid JSON in report`);
+      logToTerminal(`Error: Invalid JSON in report`);
       return;
     }
 
@@ -57,14 +53,12 @@ export const useReportSubmission = ({ setActiveTab }: UseReportSubmissionProps) 
           description: 'You must be logged in to submit reports',
           variant: 'destructive',
         });
-        // Use helper function
-        addTerminalLine(`Error: Authentication required for report submission`);
+        logToTerminal(`Error: Authentication required for report submission`);
         return;
       }
 
       setIsSubmitting(true);
-      // Use helper function
-      addTerminalLine(`Submitting generated report to database...`);
+      logToTerminal(`Submitting generated report to database...`);
 
       // Parse the JSON input
       const reportData = JSON.parse(generatedReport);
@@ -79,7 +73,7 @@ export const useReportSubmission = ({ setActiveTab }: UseReportSubmissionProps) 
       });
 
       if (error) {
-        addTerminalLine(`Error submitting report: ${error.message}`);
+        logToTerminal(`Error submitting report: ${error.message}`);
         throw new Error(error.message || 'Failed to submit report');
       }
 
@@ -87,11 +81,11 @@ export const useReportSubmission = ({ setActiveTab }: UseReportSubmissionProps) 
       // Note: Adjust this check based on the actual return structure of 'admin-reports'
       if (!result || result.success === false) {
          const errorMsg = result?.error || 'Report submission failed';
-         addTerminalLine(`Report submission failed: ${errorMsg}`);
+         logToTerminal(`Report submission failed: ${errorMsg}`);
          throw new Error(errorMsg);
       }
 
-      addTerminalLine(`Report successfully submitted to database`);
+      logToTerminal(`Report successfully submitted to database`);
 
       toast({
         title: 'Success!',
@@ -104,8 +98,7 @@ export const useReportSubmission = ({ setActiveTab }: UseReportSubmissionProps) 
       return true;
     } catch (error: any) { // Add type annotation
       console.error('Error submitting report:', error);
-      // Use helper function
-      addTerminalLine(`Error submitting report: ${error.message}`);
+      logToTerminal(`Error submitting report: ${error.message}`);
       toast({
         title: 'Submission Error', // More specific title
         description: error.message || 'Failed to submit report',

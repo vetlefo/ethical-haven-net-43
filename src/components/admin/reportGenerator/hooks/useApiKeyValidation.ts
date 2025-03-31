@@ -1,6 +1,6 @@
 
 import { useState, useCallback, useEffect } from 'react';
-import { TerminalStore } from '@/pages/Admin';
+import { logToTerminal } from '@/utils/terminalLogger';
 
 export const useApiKeyValidation = (initialKey: string = '') => {
   const [apiKey, setApiKey] = useState(initialKey);
@@ -16,7 +16,7 @@ export const useApiKeyValidation = (initialKey: string = '') => {
     
     try {
       setIsValidating(true);
-      TerminalStore.addLine(`Validating Gemini API key...`);
+      logToTerminal(`Validating Gemini API key...`);
       
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`, {
         method: 'POST',
@@ -31,19 +31,19 @@ export const useApiKeyValidation = (initialKey: string = '') => {
       });
       
       if (!response.ok) {
-        TerminalStore.addLine(`Gemini API key validation failed: ${response.status} ${response.statusText}`);
+        logToTerminal(`Gemini API key validation failed: ${response.status} ${response.statusText}`);
         setIsKeyValidated(false);
         return false;
       }
       
       const data = await response.json();
       const isValid = !!data.candidates;
-      TerminalStore.addLine(`Gemini API key validation ${isValid ? 'successful' : 'failed'}`);
+      logToTerminal(`Gemini API key validation ${isValid ? 'successful' : 'failed'}`);
       setIsKeyValidated(isValid);
       return isValid;
     } catch (error) {
       console.error('Error validating Gemini API key:', error);
-      TerminalStore.addLine(`Error validating Gemini API key: ${error.message}`);
+      logToTerminal(`Error validating Gemini API key: ${error.message}`);
       setIsKeyValidated(false);
       return false;
     } finally {
