@@ -59,10 +59,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const checkAdminStatus = (user: User) => {
-    // Check for admin role using Supabase custom claims (app_metadata)
-    // Ensure the 'role' claim is set to 'admin' in Supabase Auth for admin users.
-    const isUserAdmin = user.app_metadata?.role === 'admin';
-    console.log('Checking admin status via custom claim:', user.email, isUserAdmin);
+    // Here we simply check if the email is the admin email
+    const isUserAdmin = user.email === 'vetle@reprint.ink';
+    console.log('Checking admin status for:', user.email, isUserAdmin);
     setIsAdmin(isUserAdmin);
   };
 
