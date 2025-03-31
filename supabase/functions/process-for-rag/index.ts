@@ -1,5 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 
 // CORS headers for browser access
 const corsHeaders = {
@@ -8,135 +9,12 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-// Schema for the RAG-ready document chunks
-const ragSchema = {
-  "type": "object",
-  "required": ["documentId", "chunks", "metadata"],
-  "properties": {
-    "documentId": {
-      "type": "string",
-      "description": "A unique identifier for the document"
-    },
-    "chunks": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "required": ["id", "text", "metadata", "embedding"],
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "Unique identifier for this chunk"
-          },
-          "text": {
-            "type": "string",
-            "description": "The actual text content of this chunk (250-1000 words)"
-          },
-          "metadata": {
-            "type": "object",
-            "properties": {
-              "source": {
-                "type": "string",
-                "description": "Where this content came from"
-              },
-              "section": {
-                "type": "string",
-                "description": "Section title or identifier"
-              },
-              "position": {
-                "type": "integer",
-                "description": "Position in the original document"
-              }
-            }
-          },
-          "embedding": {
-            "type": "array",
-            "items": {
-              "type": "number"
-            },
-            "description": "Vector embedding generated from Gemini"
-          }
-        }
-      }
-    },
-    "metadata": {
-      "type": "object",
-      "properties": {
-        "title": {
-          "type": "string",
-          "description": "Document title"
-        },
-        "author": {
-          "type": "string",
-          "description": "Author of the document"
-        },
-        "date": {
-          "type": "string",
-          "description": "Creation or publication date (ISO format)"
-        },
-        "categories": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "Categories or tags for this document"
-        },
-        "regulations": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "Specific regulations covered (e.g., GDPR, LkSG, NIS2)"
-        },
-        "country": {
-          "type": "string",
-          "description": "Country focus of the document"
-        },
-        "region": {
-          "type": "string",
-          "description": "Region focus of the document"
-        },
-        "summary": {
-          "type": "string",
-          "description": "Brief summary of the document"
-        }
-      }
-    }
-  }
-};
-
-// System instruction for Gemini to process content for RAG (Note: This instruction is not currently used by the embedding logic but kept for potential future use or reference)
-const systemInstruction = `
-You are a processing engine that transforms raw compliance reports into structured, chunked documents ready for RAG (Retrieval Augmented Generation) with vector embeddings. Your focus is on compliance reports for mid-sized German technology companies.
-
-When given raw report content, you will:
-1. Analyze the content to identify logical sections and entities
-2. Break the content into coherent, semantically meaningful chunks (250-1000 words each)
-3. Structure these chunks according to the provided schema
-4. Extract relevant metadata for each chunk and the overall document
-5. Focus on German regulatory requirements like GDPR, LkSG, NIS2, and German IT Security Act 2.0
-6. Ensure chunks maintain context and are optimized for retrieval
-7. Generate unique identifiers for the document and each chunk
-
-Focus on extracting:
-- Key regulatory requirements
-- Compliance deadlines and timeframes
-- Reporting obligations
-- Risk assessment methodologies
-- Implementation steps
-- Penalties for non-compliance
-- Data protection measures
-- IT security requirements
-- Industry-specific regulations
-
-The output must be valid JSON that conforms exactly to the schema provided, with no additional commentary.
-`;
-
 // Function to split text into chunks with overlap
 function splitIntoChunks(
   text: string,
   chunkSize = 2000, // Target size in characters
   overlapSize = 200 // Overlap size in characters
-): string[] {
+): {text: string, position: number, chunkId: string}[] {
   
   if (overlapSize >= chunkSize) {
     console.warn("Overlap size is greater than or equal to chunk size. Setting overlap to chunkSize / 10.");
@@ -146,14 +24,22 @@ function splitIntoChunks(
      overlapSize = 0; // Ensure overlap is not negative
   }
 
-  const chunks: string[] = [];
+  const chunks: {text: string, position: number, chunkId: string}[] = [];
   let startIndex = 0;
+  let position = 0;
 
   // Iterate through the text, creating overlapping chunks
   while (startIndex < text.length) {
     const endIndex = Math.min(startIndex + chunkSize, text.length);
     const chunk = text.substring(startIndex, endIndex);
-    chunks.push(chunk);
+    
+    chunks.push({
+      text: chunk,
+      position: position,
+      chunkId: `chunk-${position + 1}`
+    });
+
+    position++;
 
     // Calculate the starting point for the next chunk
     const nextStartIndex = startIndex + chunkSize - overlapSize;
@@ -170,17 +56,44 @@ function splitIntoChunks(
   return chunks;
 }
 
-// This function now ONLY splits content into chunks.
-// Embedding generation is handled asynchronously via DB trigger.
-function processContentForChunking(content: string): string[] {
+// Function to generate embeddings
+async function generateEmbedding(text: string, apiKey: string) {
   try {
-    // Split the content into manageable chunks
-    const contentChunks = splitIntoChunks(content);
-    console.log(`Split content into ${contentChunks.length} chunks`);
-    return contentChunks;
+    // Check if the text is too long for the embedding API
+    if (text.length > 20000) {
+      console.log(`Text is too long (${text.length} chars), truncating to 20000 chars`);
+      text = text.substring(0, 20000);
+    }
+    
+    const response = await fetch(
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-exp-03-07:embedContent?key=" + apiKey,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          content: {
+            parts: [
+              {
+                text: text,
+              },
+            ],
+          },
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Embedding API error: ${response.status} ${errorText}`);
+    }
+
+    const data = await response.json();
+    return data.embedding.values;
   } catch (error) {
-    console.error("Error chunking content:", error);
-    throw error; // Re-throw the error to be caught by the main handler
+    console.error("Error generating embedding:", error);
+    throw error;
   }
 }
 
@@ -196,6 +109,23 @@ serve(async (req) => {
       throw new Error('Method not allowed. Only POST requests are supported.');
     }
 
+    // Get API key from environment 
+    const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
+    
+    if (!geminiApiKey) {
+      throw new Error('Gemini API key not configured');
+    }
+
+    // Create a Supabase client
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+    
+    if (!supabaseUrl || !supabaseServiceKey) {
+      throw new Error("Supabase configuration missing");
+    }
+    
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
     // Parse the request body
     const requestData = await req.json();
 
@@ -204,21 +134,112 @@ serve(async (req) => {
       throw new Error('Missing content for processing');
     }
 
-    // This function now ONLY chunks the content. Embeddings are handled async.
-    console.log("Chunking content...");
-    const textChunks = processContentForChunking(requestData.content);
+    try {
+      // Check if the content is a JSON string and parse it if it is
+      const contentObj = typeof requestData.content === 'string' 
+        ? JSON.parse(requestData.content) 
+        : requestData.content;
 
-    // Return the array of text chunks
-    return new Response(
-      JSON.stringify({
-        success: true,
-        chunks: textChunks // Return the array of strings
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      // Initialize document ID and metadata
+      const documentId = `doc-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
+      
+      let chunks;
+      let metadata = {};
+      
+      // Handle structured report JSON
+      if (contentObj.title && contentObj.content) {
+        console.log("Processing structured report content");
+        metadata = {
+          title: contentObj.title,
+          summary: contentObj.summary,
+          country: contentObj.country,
+          region: contentObj.region,
+          categories: contentObj.tags || [],
+          regulations: contentObj.tags?.filter(tag => 
+            ['GDPR', 'HIPAA', 'LkSG', 'NIS2', 'IT Security Act'].some(reg => 
+              tag.includes(reg)
+            )
+          ) || []
+        };
+        
+        // Extract text from report sections
+        let fullText = '';
+        if (contentObj.content?.sections) {
+          contentObj.content.sections.forEach((section) => {
+            fullText += section.title + '\n\n' + section.content + '\n\n';
+          });
+        } else {
+          fullText = contentObj.summary || '';
+        }
+        
+        chunks = splitIntoChunks(fullText);
+      } else if (Array.isArray(contentObj)) {
+        // Handle array format (direct chunks)
+        console.log("Processing array of chunks");
+        chunks = contentObj;
+      } else {
+        // Handle plain text
+        console.log("Processing plain text content");
+        chunks = splitIntoChunks(requestData.content);
       }
-    );
-    
+
+      console.log(`Processing ${chunks.length} chunks for embedding`);
+
+      // Store document metadata
+      const { error: docError } = await supabase
+        .from("rag_documents")
+        .insert({
+          document_id: documentId,
+          title: metadata.title || "Untitled Document",
+          summary: metadata.summary,
+          country: metadata.country,
+          region: metadata.region,
+          categories: metadata.categories,
+          regulations: metadata.regulations,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+      
+      if (docError) {
+        console.error("Error storing document metadata:", docError);
+        throw new Error(`Failed to store document metadata: ${docError.message}`);
+      }
+      
+      // Store each chunk with embedding_status = "pending"
+      for (let i = 0; i < chunks.length; i++) {
+        const chunk = chunks[i];
+        
+        const { error: chunkError } = await supabase
+          .from("rag_chunks")
+          .insert({
+            document_id: documentId,
+            chunk_id: chunk.chunkId || `chunk-${i + 1}`,
+            text: chunk.text,
+            position: chunk.position || i,
+            section: chunk.metadata?.section,
+            source: chunk.metadata?.source,
+            embedding_status: "pending" // Mark for async embedding generation
+          });
+        
+        if (chunkError) {
+          console.error(`Error storing chunk ${i + 1}:`, chunkError);
+        }
+      }
+      
+      return new Response(
+        JSON.stringify({
+          success: true,
+          documentId: documentId,
+          message: `Successfully queued ${chunks.length} chunks for embedding generation.`
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    } catch (parseError) {
+      console.error("Error parsing content:", parseError);
+      throw new Error(`Failed to parse content: ${parseError.message}`);
+    }
   } catch (error) {
     console.error('Error processing request:', error);
     // Type assertion for error handling

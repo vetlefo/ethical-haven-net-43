@@ -1,28 +1,24 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.20.0"; // Use appropriate version
 
-// CORS headers (might not be strictly necessary if only called internally by pg_net, but good practice)
+// CORS headers
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*', // Adjust if needed for security
+  'Access-Control-Allow-Origin': '*', 
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-internal-api-key',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-// --- Environment Variables ---
-// Service Role Key for database updates
+// Environment Variables
 const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-// Gemini API Key for embedding generation
 const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
-// Optional internal API key for securing this endpoint
-const internalApiKey = Deno.env.get("INTERNAL_API_KEY"); // Make sure to set this in Supabase secrets
+const internalApiKey = Deno.env.get("INTERNAL_API_KEY"); // Optional internal API key
 
-// --- Supabase Client (Service Role) ---
-// Use service role key to bypass RLS for updates
+// Supabase Client (Service Role)
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-// --- Helper Function: Generate Embedding ---
-// Copied from original process-for-rag, could be moved to a shared module later
+// Helper Function: Generate Embedding
 async function generateEmbedding(text: string, apiKey: string): Promise<number[]> {
   try {
     // Check if the text is too long for the embedding API
@@ -64,12 +60,11 @@ async function generateEmbedding(text: string, apiKey: string): Promise<number[]
     return data.embedding.values;
   } catch (error) {
     console.error("Error generating embedding:", error);
-    // Re-throw the original error or a new one with context
     throw new Error(`Failed to generate embedding: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
-// --- Main Function Handler ---
+// Main Function Handler
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -77,7 +72,7 @@ serve(async (req) => {
   }
 
   try {
-    // --- Security Check (Optional but Recommended) ---
+    // Security Check (Optional)
     if (internalApiKey) {
       const providedInternalKey = req.headers.get('X-Internal-Api-Key');
       if (!providedInternalKey || providedInternalKey !== internalApiKey) {
@@ -86,7 +81,7 @@ serve(async (req) => {
       }
     }
 
-    // --- Input Validation ---
+    // Input Validation
     if (req.method !== 'POST') {
       return new Response(JSON.stringify({ success: false, error: 'Method Not Allowed' }), { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
@@ -106,7 +101,7 @@ serve(async (req) => {
 
     console.log(`Received request to generate embedding for chunk ${chunk_id} (Doc: ${document_id})`);
 
-    // --- Embedding Generation ---
+    // Embedding Generation
     let embeddingVector: number[] | null = null;
     let embeddingError: string | null = null;
 
@@ -119,7 +114,7 @@ serve(async (req) => {
       // Don't throw here, we want to update the DB status to 'failed'
     }
 
-    // --- Database Update ---
+    // Database Update
     let dbError: any = null; // Explicitly type as any to handle Supabase error type
     if (embeddingVector) {
       // Update with embedding and set status to 'completed'
@@ -147,19 +142,16 @@ serve(async (req) => {
     if (dbError) {
       console.error(`Failed to update chunk ${chunk_id} status in DB:`, dbError);
       const dbErrorMessage = dbError instanceof Error ? dbError.message : String(dbError);
-      // Even if DB update fails, the trigger won't retry automatically.
-      // Consider logging this prominently or implementing a retry mechanism if critical.
       return new Response(JSON.stringify({ success: false, error: `Database update failed: ${dbErrorMessage}` }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     console.log(`Successfully updated DB status for chunk ${chunk_id} to '${embeddingVector ? 'completed' : 'failed'}'`);
 
-    // --- Return Success ---
-    // pg_net doesn't typically use the response, but returning success is good practice.
+    // Return Success
     return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   } catch (error) {
-    // General catch block for unexpected errors (e.g., JSON parsing)
+    // General catch block for unexpected errors
     console.error('Unexpected error in generate-single-embedding:', error);
     const errorMessage = error instanceof Error ? error.message : String(error);
     return new Response(JSON.stringify({ success: false, error: `Unexpected error: ${errorMessage}` }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
