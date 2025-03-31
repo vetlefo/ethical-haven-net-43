@@ -22,11 +22,17 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 async function generateEmbedding(text: string, apiKey: string): Promise<number[]> {
   try {
     // Check if the text is too long for the embedding API
-    if (text.length > 20000) {
-      console.log(`Text is too long (${text.length} chars), truncating to 20000 chars`);
-      text = text.substring(0, 20000);
+    if (text.length > 25000) {
+      console.log(`Text is too long (${text.length} chars), truncating to 25000 chars`);
+      text = text.substring(0, 25000);
     }
     
+    // Ensure text is not empty
+    if (!text.trim()) {
+      throw new Error("Cannot generate embedding for empty text");
+    }
+    
+    console.log(`Generating embedding for text (length: ${text.length} chars)`);
     const response = await fetch(
       "https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-exp-03-07:embedContent?key=" + apiKey,
       {
@@ -57,6 +63,8 @@ async function generateEmbedding(text: string, apiKey: string): Promise<number[]
         console.error("Invalid embedding response structure:", data);
         throw new Error("Invalid response structure from embedding API");
     }
+    
+    console.log(`Successfully generated embedding with ${data.embedding.values.length} dimensions`);
     return data.embedding.values;
   } catch (error) {
     console.error("Error generating embedding:", error);
@@ -72,88 +80,130 @@ serve(async (req) => {
   }
 
   try {
-    // Security Check (Optional)
-    if (internalApiKey) {
-      const providedInternalKey = req.headers.get('X-Internal-Api-Key');
-      if (!providedInternalKey || providedInternalKey !== internalApiKey) {
-        console.error("Forbidden: Invalid internal API key.");
-        return new Response(JSON.stringify({ success: false, error: 'Forbidden' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-      }
-    }
-
     // Input Validation
     if (req.method !== 'POST') {
-      return new Response(JSON.stringify({ success: false, error: 'Method Not Allowed' }), { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ success: false, error: 'Method Not Allowed' }), { 
+        status: 405, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      });
     }
 
     if (!geminiApiKey) {
       console.error("Missing Gemini API key configuration on server.");
-      return new Response(JSON.stringify({ success: false, error: 'Server configuration error: Missing embedding API key.' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: 'Server configuration error: Missing embedding API key.' 
+      }), { 
+        status: 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      });
     }
 
+    // Parse the request payload
     const payload = await req.json();
-    const { chunk_id, document_id, text } = payload;
+    
+    // Check if this is a direct chunk_id request or a document processing request
+    if (payload.chunk_id && payload.document_id) {
+      // Direct single chunk processing
+      const { chunk_id, document_id, text } = payload;
 
-    if (!chunk_id || !document_id || !text) {
-      console.error("Invalid payload received:", payload);
-      return new Response(JSON.stringify({ success: false, error: 'Invalid payload: Missing chunk_id, document_id, or text.' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
+      if (!chunk_id || !document_id || !text) {
+        console.error("Invalid payload received:", payload);
+        return new Response(JSON.stringify({ 
+          success: false, 
+          error: 'Invalid payload: Missing chunk_id, document_id, or text.' 
+        }), { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        });
+      }
 
-    console.log(`Received request to generate embedding for chunk ${chunk_id} (Doc: ${document_id})`);
+      console.log(`Processing embedding for chunk ${chunk_id} (Doc: ${document_id})`);
 
-    // Embedding Generation
-    let embeddingVector: number[] | null = null;
-    let embeddingError: string | null = null;
+      // Embedding Generation
+      let embeddingVector: number[] | null = null;
+      let embeddingError: string | null = null;
 
-    try {
-      embeddingVector = await generateEmbedding(text, geminiApiKey);
-      console.log(`Successfully generated embedding for chunk ${chunk_id}`);
-    } catch (genError) {
-      embeddingError = genError instanceof Error ? genError.message : String(genError);
-      console.error(`Failed to generate embedding for chunk ${chunk_id}: ${embeddingError}`);
-      // Don't throw here, we want to update the DB status to 'failed'
-    }
+      try {
+        embeddingVector = await generateEmbedding(text, geminiApiKey);
+      } catch (genError) {
+        embeddingError = genError instanceof Error ? genError.message : String(genError);
+        console.error(`Failed to generate embedding for chunk ${chunk_id}: ${embeddingError}`);
+      }
 
-    // Database Update
-    let dbError: any = null; // Explicitly type as any to handle Supabase error type
-    if (embeddingVector) {
-      // Update with embedding and set status to 'completed'
-      const { error } = await supabaseAdmin
-        .from('rag_chunks')
-        .update({ 
-            embedding: embeddingVector, 
-            embedding_status: 'completed',
-            embedding_error: null // Clear any previous error
-        })
-        .match({ chunk_id: chunk_id, document_id: document_id });
-      dbError = error;
+      // Database Update
+      let dbError: any = null;
+      if (embeddingVector) {
+        // Update with embedding and set status to 'completed'
+        const { error } = await supabaseAdmin
+          .from('rag_chunks')
+          .update({ 
+              embedding: embeddingVector, 
+              embedding_status: 'completed',
+              embedding_error: null,
+              updated_at: new Date().toISOString()
+          })
+          .eq('chunk_id', chunk_id)
+          .eq('document_id', document_id);
+        
+        dbError = error;
+      } else {
+        // Update status to 'failed' and store the error message
+        const { error } = await supabaseAdmin
+          .from('rag_chunks')
+          .update({ 
+              embedding_status: 'failed',
+              embedding_error: embeddingError,
+              updated_at: new Date().toISOString()
+          })
+          .eq('chunk_id', chunk_id)
+          .eq('document_id', document_id);
+        
+        dbError = error;
+      }
+
+      if (dbError) {
+        console.error(`Failed to update chunk ${chunk_id} status in DB:`, dbError);
+        const dbErrorMessage = dbError instanceof Error ? dbError.message : String(dbError);
+        return new Response(JSON.stringify({ 
+          success: false, 
+          error: `Database update failed: ${dbErrorMessage}` 
+        }), { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        });
+      }
+
+      console.log(`Updated DB status for chunk ${chunk_id} to '${embeddingVector ? 'completed' : 'failed'}'`);
+
+      // Return Success
+      return new Response(JSON.stringify({ 
+        success: true,
+        chunk_id,
+        status: embeddingVector ? 'completed' : 'failed'
+      }), { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      });
     } else {
-      // Update status to 'failed' and store the error message
-      const { error } = await supabaseAdmin
-        .from('rag_chunks')
-        .update({ 
-            embedding_status: 'failed',
-            embedding_error: embeddingError 
-        })
-        .match({ chunk_id: chunk_id, document_id: document_id });
-      dbError = error;
+      // This endpoint only handles direct chunk processing
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: 'Invalid request format. This endpoint requires chunk_id, document_id, and text parameters.' 
+      }), { 
+        status: 400, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      });
     }
-
-    if (dbError) {
-      console.error(`Failed to update chunk ${chunk_id} status in DB:`, dbError);
-      const dbErrorMessage = dbError instanceof Error ? dbError.message : String(dbError);
-      return new Response(JSON.stringify({ success: false, error: `Database update failed: ${dbErrorMessage}` }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
-
-    console.log(`Successfully updated DB status for chunk ${chunk_id} to '${embeddingVector ? 'completed' : 'failed'}'`);
-
-    // Return Success
-    return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-
   } catch (error) {
     // General catch block for unexpected errors
     console.error('Unexpected error in generate-single-embedding:', error);
     const errorMessage = error instanceof Error ? error.message : String(error);
-    return new Response(JSON.stringify({ success: false, error: `Unexpected error: ${errorMessage}` }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify({ 
+      success: false, 
+      error: `Unexpected error: ${errorMessage}` 
+    }), { 
+      status: 500, 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+    });
   }
 });

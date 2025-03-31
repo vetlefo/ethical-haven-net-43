@@ -4,6 +4,70 @@
 -- First, make sure we have the pg_net extension for making HTTP calls
 CREATE EXTENSION IF NOT EXISTS pg_net;
 
+-- Make sure we have the necessary tables
+DO $$
+BEGIN
+    -- Create rag_documents table if it doesn't exist
+    IF NOT EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'rag_documents') THEN
+        CREATE TABLE public.rag_documents (
+            document_id TEXT PRIMARY KEY,
+            title TEXT NOT NULL,
+            summary TEXT,
+            content_type TEXT,
+            country TEXT,
+            region TEXT,
+            categories TEXT[],
+            regulations TEXT[],
+            created_at TIMESTAMPTZ DEFAULT now(),
+            updated_at TIMESTAMPTZ DEFAULT now()
+        );
+    END IF;
+
+    -- Create rag_chunks table if it doesn't exist
+    IF NOT EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'rag_chunks') THEN
+        CREATE TABLE public.rag_chunks (
+            id BIGSERIAL PRIMARY KEY,
+            document_id TEXT NOT NULL REFERENCES public.rag_documents(document_id),
+            chunk_id TEXT NOT NULL,
+            text TEXT NOT NULL,
+            position INTEGER,
+            section TEXT,
+            source TEXT,
+            embedding vector(768),
+            embedding_status TEXT DEFAULT 'pending',
+            embedding_error TEXT,
+            created_at TIMESTAMPTZ DEFAULT now(),
+            updated_at TIMESTAMPTZ DEFAULT now(),
+            UNIQUE(document_id, chunk_id)
+        );
+
+        -- Add index for similarity search
+        CREATE INDEX IF NOT EXISTS rag_chunks_embedding_idx ON public.rag_chunks 
+        USING ivfflat (embedding vector_cosine_ops)
+        WITH (lists = 100);
+    END IF;
+
+    -- Add embedding_status column if it doesn't exist
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+        AND table_name = 'rag_chunks' 
+        AND column_name = 'embedding_status'
+    ) THEN
+        ALTER TABLE public.rag_chunks ADD COLUMN embedding_status TEXT DEFAULT 'pending';
+    END IF;
+
+    -- Add embedding_error column if it doesn't exist
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+        AND table_name = 'rag_chunks' 
+        AND column_name = 'embedding_error'
+    ) THEN
+        ALTER TABLE public.rag_chunks ADD COLUMN embedding_error TEXT;
+    END IF;
+END$$;
+
 -- Function to generate embeddings asynchronously when chunks are inserted
 CREATE OR REPLACE FUNCTION process_pending_embeddings()
 RETURNS TRIGGER AS $$
@@ -57,3 +121,6 @@ EXECUTE FUNCTION process_pending_embeddings();
 
 -- Set the necessary configurations
 COMMENT ON FUNCTION process_pending_embeddings() IS 'Triggers async embedding generation for new rag_chunks';
+
+-- Notify schema refresh
+NOTIFY pgrst, 'reload schema';

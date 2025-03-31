@@ -33,10 +33,16 @@ function splitIntoChunks(
     const endIndex = Math.min(startIndex + chunkSize, text.length);
     const chunk = text.substring(startIndex, endIndex);
     
+    if (chunk.trim().length === 0) {
+      // Skip empty chunks
+      startIndex = endIndex;
+      continue;
+    }
+    
     chunks.push({
       text: chunk,
       position: position,
-      chunkId: `chunk-${position + 1}`
+      chunkId: `chunk-${Date.now()}-${position + 1}`
     });
 
     position++;
@@ -54,47 +60,6 @@ function splitIntoChunks(
   }
 
   return chunks;
-}
-
-// Function to generate embeddings
-async function generateEmbedding(text: string, apiKey: string) {
-  try {
-    // Check if the text is too long for the embedding API
-    if (text.length > 20000) {
-      console.log(`Text is too long (${text.length} chars), truncating to 20000 chars`);
-      text = text.substring(0, 20000);
-    }
-    
-    const response = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-exp-03-07:embedContent?key=" + apiKey,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          content: {
-            parts: [
-              {
-                text: text,
-              },
-            ],
-          },
-        }),
-      }
-    );
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Embedding API error: ${response.status} ${errorText}`);
-    }
-
-    const data = await response.json();
-    return data.embedding.values;
-  } catch (error) {
-    console.error("Error generating embedding:", error);
-    throw error;
-  }
 }
 
 serve(async (req) => {
@@ -135,67 +100,89 @@ serve(async (req) => {
     }
 
     try {
-      // Check if the content is a JSON string and parse it if it is
-      const contentObj = typeof requestData.content === 'string' 
-        ? JSON.parse(requestData.content) 
-        : requestData.content;
-
-      // Initialize document ID and metadata
-      const documentId = `doc-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
+      console.log("Request content type:", typeof requestData.content);
+      console.log("Content length:", typeof requestData.content === 'string' ? requestData.content.length : 'not a string');
       
-      let chunks;
+      // Generate a unique document ID if not provided
+      const documentId = requestData.documentId || `doc-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
+      let chunks = [];
+      let documentTitle = "Untitled Document";
+      let documentSummary = null;
       let metadata = {};
       
-      // Handle structured report JSON
-      if (contentObj.title && contentObj.content) {
-        console.log("Processing structured report content");
-        metadata = {
-          title: contentObj.title,
-          summary: contentObj.summary,
-          country: contentObj.country,
-          region: contentObj.region,
-          categories: contentObj.tags || [],
-          regulations: contentObj.tags?.filter(tag => 
-            ['GDPR', 'HIPAA', 'LkSG', 'NIS2', 'IT Security Act'].some(reg => 
-              tag.includes(reg)
-            )
-          ) || []
-        };
+      const contentType = requestData.contentType || "general";
+      
+      // First, try to parse the content as JSON (for structured report content)
+      try {
+        // Check if content is already an object
+        const contentObj = typeof requestData.content === 'object' 
+          ? requestData.content 
+          : JSON.parse(requestData.content);
         
-        // Extract text from report sections
-        let fullText = '';
+        console.log("Successfully parsed content as JSON");
+        
+        // Extract metadata from the report structure
+        if (contentObj.title) {
+          documentTitle = contentObj.title;
+          documentSummary = contentObj.summary || null;
+          metadata = {
+            title: contentObj.title,
+            summary: contentObj.summary,
+            country: contentObj.country,
+            region: contentObj.region,
+            categories: contentObj.tags || [],
+            regulations: contentObj.tags?.filter(tag => 
+              ['GDPR', 'HIPAA', 'LkSG', 'NIS2', 'IT Security Act'].some(reg => 
+                tag.includes(reg)
+              )
+            ) || []
+          };
+        }
+        
+        // Handle different possible content structures
         if (contentObj.content?.sections) {
+          // Handle report content with sections
+          console.log("Processing report with sections");
+          let fullText = '';
           contentObj.content.sections.forEach((section) => {
             fullText += section.title + '\n\n' + section.content + '\n\n';
           });
+          chunks = splitIntoChunks(fullText);
+        } else if (Array.isArray(contentObj)) {
+          // Handle array of chunks directly
+          console.log("Processing array of chunks");
+          chunks = contentObj;
+        } else if (typeof contentObj === 'string') {
+          // Handle string content
+          console.log("Processing string content from JSON");
+          chunks = splitIntoChunks(contentObj);
+        } else if (contentObj.content && typeof contentObj.content === 'string') {
+          // Handle content field that's a string
+          console.log("Processing content field from JSON");
+          chunks = splitIntoChunks(contentObj.content);
         } else {
-          fullText = contentObj.summary || '';
+          // Fall back to stringifying the object
+          console.log("Stringifying complex object for chunking");
+          const jsonText = JSON.stringify(contentObj, null, 2);
+          chunks = splitIntoChunks(jsonText);
         }
-        
-        chunks = splitIntoChunks(fullText);
-      } else if (Array.isArray(contentObj)) {
-        // Handle array format (direct chunks)
-        console.log("Processing array of chunks");
-        chunks = contentObj;
-      } else {
-        // Handle plain text
-        console.log("Processing plain text content");
+      } catch (parseError) {
+        // If parsing as JSON fails, treat as plain text
+        console.log("Parsing as JSON failed, treating as plain text:", parseError.message);
         chunks = splitIntoChunks(requestData.content);
       }
-
-      console.log(`Processing ${chunks.length} chunks for embedding`);
+      
+      console.log(`Processing ${chunks.length} chunks for document ID: ${documentId}`);
 
       // Store document metadata
       const { error: docError } = await supabase
         .from("rag_documents")
         .insert({
           document_id: documentId,
-          title: metadata.title || "Untitled Document",
-          summary: metadata.summary,
-          country: metadata.country,
-          region: metadata.region,
-          categories: metadata.categories,
-          regulations: metadata.regulations,
+          title: documentTitle,
+          summary: documentSummary,
+          content_type: contentType,
+          ...metadata,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         });
@@ -206,14 +193,20 @@ serve(async (req) => {
       }
       
       // Store each chunk with embedding_status = "pending"
+      let successCount = 0;
       for (let i = 0; i < chunks.length; i++) {
         const chunk = chunks[i];
+        
+        if (!chunk.text || chunk.text.trim().length === 0) {
+          console.log(`Skipping empty chunk at position ${i}`);
+          continue;
+        }
         
         const { error: chunkError } = await supabase
           .from("rag_chunks")
           .insert({
             document_id: documentId,
-            chunk_id: chunk.chunkId || `chunk-${i + 1}`,
+            chunk_id: chunk.chunkId || `chunk-${documentId}-${i + 1}`,
             text: chunk.text,
             position: chunk.position || i,
             section: chunk.metadata?.section,
@@ -223,6 +216,8 @@ serve(async (req) => {
         
         if (chunkError) {
           console.error(`Error storing chunk ${i + 1}:`, chunkError);
+        } else {
+          successCount++;
         }
       }
       
@@ -230,15 +225,15 @@ serve(async (req) => {
         JSON.stringify({
           success: true,
           documentId: documentId,
-          message: `Successfully queued ${chunks.length} chunks for embedding generation.`
+          message: `Successfully queued ${successCount} of ${chunks.length} chunks for embedding generation.`
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       );
     } catch (parseError) {
-      console.error("Error parsing content:", parseError);
-      throw new Error(`Failed to parse content: ${parseError.message}`);
+      console.error("Error processing content:", parseError);
+      throw new Error(`Failed to process content: ${parseError.message}`);
     }
   } catch (error) {
     console.error('Error processing request:', error);
