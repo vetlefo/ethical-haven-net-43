@@ -74,15 +74,15 @@ export const useWorkflowProcess = () => {
       logToTerminal(`Sending request to generate-report with payload: ${JSON.stringify(requestPayload, null, 2)}`);
       
       // Use a direct fetch call with proper headers to ensure correct content type
-      const apiUrl = `https://kxvjrktpadujfcxpfuxi.supabase.co/functions/v1/generate-report`;
-      const apiKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt4dmpya3RwYWR1amZjeHBmdXhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI2MTkwMzksImV4cCI6MjA1ODE5NTAzOX0.HKDNvLzo8FV1bVk-CNxV2dZ-CCV8NaIrYP_q3ciXHII';
+      const apiUrl = `${supabase.supabaseUrl}/functions/v1/generate-report`;
+      const supabaseKey = supabase.supabaseKey;
       
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${authToken}`,
           'Content-Type': 'application/json',
-          'apikey': apiKey
+          'apikey': supabaseKey
         },
         body: JSON.stringify(requestPayload)
       });
@@ -106,6 +106,17 @@ export const useWorkflowProcess = () => {
       let parsedReport;
       try {
         parsedReport = JSON.parse(reportJson);
+        
+        // Use the actual title from the original content instead of the AI-generated one
+        // Extract a meaningful title from the raw content for comparative analysis reports
+        if (contentType === 'competitive-intel' && rawContent.includes('Comparative Analysis')) {
+          const titleMatch = rawContent.match(/# \*\*([^*]+)\*\*/);
+          if (titleMatch && titleMatch[1]) {
+            parsedReport.title = titleMatch[1].trim();
+            logToTerminal(`Using original title from content: "${parsedReport.title}"`);
+          }
+        }
+        
         logToTerminal(`Generated report with title: "${parsedReport.title}"`);
       } catch (parseError) {
         logToTerminal(`Error parsing report JSON: ${parseError.message}`);
@@ -124,20 +135,33 @@ export const useWorkflowProcess = () => {
       logToTerminal(`Step 2: Storing report in database...`);
       logToTerminal(`Report has is_rag_enabled flag set to: ${parsedReport.is_rag_enabled}`);
       
-      const { data: storeData, error: storeError } = await supabase.functions.invoke('store-report', {
-        body: parsedReport,
+      // Use the direct fetch approach for more control over the request
+      const storeUrl = `${supabase.supabaseUrl}/functions/v1/store-report`;
+      
+      const storeResponse = await fetch(storeUrl, {
+        method: 'POST',
         headers: {
           'Authorization': `Bearer ${authToken}`,
-          'Content-Type': 'application/json'
-        }
+          'Content-Type': 'application/json',
+          'apikey': supabaseKey
+        },
+        body: JSON.stringify(parsedReport)
       });
       
-      if (storeError) {
-        logToTerminal(`Storage error: ${storeError.message}`);
-        throw new Error(`Storage error: ${storeError.message}`);
+      if (!storeResponse.ok) {
+        const errorText = await storeResponse.text();
+        logToTerminal(`Storage error details: Status ${storeResponse.status}, Response: ${errorText}`);
+        throw new Error(`Storage error: Edge Function returned a non-2xx status code`);
       }
       
-      logToTerminal(`Report stored successfully in database`);
+      const storeData = await storeResponse.json();
+      
+      if (!storeData.success) {
+        logToTerminal(`Storage operation failed: ${storeData.error || 'Unknown error'}`);
+        throw new Error(`Storage error: ${storeData.error || 'Unknown error'}`);
+      }
+      
+      logToTerminal(`Report stored successfully in database with ID: ${storeData.report?.id || 'unknown'}`);
       
       // Step 3: Process for RAG (optional)
       setProcessStatus(['completed', 'completed', 'processing']);
@@ -169,7 +193,7 @@ export const useWorkflowProcess = () => {
       // Success message regardless of RAG outcome (because the report is saved)
       toast({
         title: 'Success!',
-        description: `Compliance report "${parsedReport.title}" has been processed and stored successfully`,
+        description: `Report "${parsedReport.title}" has been processed and stored successfully`,
       });
       
       // Reset form after successful submission

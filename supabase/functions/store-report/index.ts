@@ -121,9 +121,7 @@ serve(async (req) => {
 
     console.log('Authenticated user:', user.id, user.email);
 
-    // TODO: Refactor admin check to use Supabase custom claims instead of hardcoded email
     // Check if user is admin (you can modify this check based on your needs)
-    // For example, you might check if the user's email matches an admin email
     const isAdmin = user.email === 'vetle@reprint.ink';
     if (!isAdmin) {
       console.error('User is not an admin:', user.email);
@@ -141,7 +139,7 @@ serve(async (req) => {
 
     // Parse the request body
     console.log('Parsing request data');
-    const reportData: ReportInput = await req.json();
+    const reportData = await req.json() as ReportInput;
     
     // Validate required fields
     if (!reportData.title || !reportData.summary || !reportData.content) {
@@ -170,26 +168,30 @@ serve(async (req) => {
     console.log('Inserting report into database');
 
     // First, let's run the migration to ensure the column exists
-    const { error: migrationError } = await supabase.rpc('pg_extension', { 
-      query: `
-        DO $$
-        BEGIN
-            IF NOT EXISTS (
-                SELECT FROM information_schema.columns 
-                WHERE table_schema = 'public'
-                AND table_name = 'compliance_reports'
-                AND column_name = 'is_rag_enabled'
-            ) THEN
-                ALTER TABLE public.compliance_reports
-                ADD COLUMN is_rag_enabled BOOLEAN DEFAULT FALSE;
-            END IF;
-        END $$;
-      `
-    });
+    try {
+      const { error: migrationError } = await supabase.rpc('pg_extension', { 
+        query: `
+          DO $$
+          BEGIN
+              IF NOT EXISTS (
+                  SELECT FROM information_schema.columns 
+                  WHERE table_schema = 'public'
+                  AND table_name = 'compliance_reports'
+                  AND column_name = 'is_rag_enabled'
+              ) THEN
+                  ALTER TABLE public.compliance_reports
+                  ADD COLUMN is_rag_enabled BOOLEAN DEFAULT FALSE;
+              END IF;
+          END $$;
+        `
+      });
 
-    if (migrationError) {
-      console.error('Migration error:', migrationError);
-      // Continue anyway, as we'll handle the case if the column doesn't exist
+      if (migrationError) {
+        console.error('Migration error (non-fatal, continuing):', migrationError);
+      }
+    } catch (migrationErr) {
+      console.error('Migration failed (non-fatal, continuing):', migrationErr);
+      // Continue with insert anyway
     }
 
     // Insert the report into the database

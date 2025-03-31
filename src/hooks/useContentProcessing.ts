@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -68,20 +69,35 @@ export const useContentProcessing = () => {
         logToTerminal(`Content preview: ${rawContent.substring(0, 50)}...`);
       }
 
+      // Use direct fetch for more reliable calls to Supabase Edge Functions
+      const apiUrl = `${supabase.supabaseUrl}/functions/v1/generate-report`;
+      const supabaseKey = supabase.supabaseKey;
+      
       const generateReportPayload = {
         prompt: rawContent,
         contentType: contentType
       };
+      
       logToTerminal(`Calling 'generate-report' function...`);
-      const { data: transformData, error: transformError } = await supabase.functions.invoke('generate-report', {
-        body: generateReportPayload,
-        headers: { 'Authorization': `Bearer ${authToken}` }
+      
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json',
+          'apikey': supabaseKey
+        },
+        body: JSON.stringify(generateReportPayload)
       });
-
-      if (transformError) {
-        logToTerminal(`Error from 'generate-report': ${transformError.message}`);
-        throw new Error(transformError.message || 'Failed to generate initial report');
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        logToTerminal(`Error from 'generate-report': Status ${response.status}, Response: ${errorText}`);
+        throw new Error('Failed to generate initial report structure');
       }
+      
+      const transformData = await response.json();
+      
       if (!transformData || transformData.success === false || !transformData.reportJson) {
         const errorMsg = transformData?.error || 'Report generation service returned invalid data or failed';
         logToTerminal(`'generate-report' failed: ${errorMsg}`);
@@ -91,6 +107,16 @@ export const useContentProcessing = () => {
       let parsedReport;
       try {
         parsedReport = JSON.parse(transformData.reportJson);
+        
+        // Extract title from raw content if this is a comparative analysis
+        if (contentType === 'competitive-intel' && rawContent.includes('Comparative Analysis')) {
+          const titleMatch = rawContent.match(/# \*\*([^*]+)\*\*/);
+          if (titleMatch && titleMatch[1]) {
+            parsedReport.title = titleMatch[1].trim();
+            logToTerminal(`Using original title from content: "${parsedReport.title}"`);
+          }
+        }
+        
         logToTerminal(`Successfully parsed generated report: ${parsedReport.title || '(No Title)'}`);
       } catch (e: any) {
         logToTerminal(`Failed to parse report JSON from 'generate-report': ${e.message}`);
@@ -121,26 +147,32 @@ export const useContentProcessing = () => {
         contentType,
         generateEmbeddings: true // Explicitly request embeddings
       };
-      logToTerminal(`Calling 'process-for-rag' function...`);
-      const { data: embeddingData, error: embeddingError } = await supabase.functions.invoke('process-for-rag', {
-        body: processRagPayload,
-        headers: { 'Authorization': `Bearer ${authToken}` }
+      
+      const embeddingResponse = await fetch(`${supabase.supabaseUrl}/functions/v1/process-for-rag`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json',
+          'apikey': supabaseKey
+        },
+        body: JSON.stringify(processRagPayload)
       });
-
-      if (embeddingError) {
-        logToTerminal(`Error from 'process-for-rag': ${embeddingError.message}`);
-        // Decide if this is critical - for now, let's make it blocking
-        throw new Error(embeddingError.message || 'Failed to generate embeddings');
+      
+      if (!embeddingResponse.ok) {
+        const errorText = await embeddingResponse.text();
+        logToTerminal(`Error from 'process-for-rag': Status ${embeddingResponse.status}, Response: ${errorText}`);
+        throw new Error('Failed to generate embeddings');
       }
-      // Assuming process-for-rag returns { success: boolean, processedContent?: string, error?: string }
-      // And processedContent contains the RAG structure with embeddings
-      if (!embeddingData || embeddingData.success === false || !embeddingData.processedContent) {
+      
+      const embeddingData = await embeddingResponse.json();
+      
+      if (!embeddingData || embeddingData.success === false) {
          const errorMsg = embeddingData?.error || 'Embedding generation failed or returned invalid data';
          logToTerminal(`'process-for-rag' failed: ${errorMsg}`);
          throw new Error(errorMsg);
       }
-      // We might need to parse embeddingData.processedContent if we need the embeddings later
-      logToTerminal("Embeddings processed successfully (or function call succeeded)");
+      
+      logToTerminal("Embeddings processed successfully");
       updateProcessStatus(2, 'completed');
 
       // --- Step 4: Store Report in Database ---
@@ -152,22 +184,32 @@ export const useContentProcessing = () => {
       logToTerminal(`Adding is_rag_enabled flag: ${parsedReport.is_rag_enabled}`);
 
       logToTerminal(`Calling 'store-report' function...`);
-      const { data: storeData, error: storeError } = await supabase.functions.invoke('store-report', {
-        body: parsedReport, // Send the report object generated in Step 1
-        headers: { 'Authorization': `Bearer ${authToken}` }
+      
+      const storeResponse = await fetch(`${supabase.supabaseUrl}/functions/v1/store-report`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json',
+          'apikey': supabaseKey
+        },
+        body: JSON.stringify(parsedReport)
       });
-
-      if (storeError) {
-        logToTerminal(`Error from 'store-report': ${storeError.message}`);
-        throw new Error(storeError.message || 'Failed to store report');
+      
+      if (!storeResponse.ok) {
+        const errorText = await storeResponse.text();
+        logToTerminal(`Error from 'store-report': Status ${storeResponse.status}, Response: ${errorText}`);
+        throw new Error('Failed to store report in database');
       }
-      // Assuming store-report returns { success: boolean, report?: { id: string }, error?: string }
-      if (!storeData || storeData.success === false || !storeData.report || !storeData.report.id) {
+      
+      const storeData = await storeResponse.json();
+      
+      if (!storeData || storeData.success === false) {
         const errorMsg = storeData?.error || 'Storing report failed or returned invalid data';
         logToTerminal(`'store-report' failed: ${errorMsg}`);
         throw new Error(errorMsg);
       }
-      logToTerminal(`Report stored successfully with ID: ${storeData.report.id}`);
+      
+      logToTerminal(`Report stored successfully with ID: ${storeData.report?.id || 'unknown'}`);
       updateProcessStatus(3, 'completed');
 
       // --- Process Complete ---
@@ -186,8 +228,6 @@ export const useContentProcessing = () => {
 
       // Reset the form
       setRawContent('');
-      // Keep results displayed, don't call resetProcessing() here
-      // resetProcessing(); // Call this explicitly if needed via a button
 
     } catch (error: any) { // Catch any error from the try block
       console.error('Error processing content:', error);
