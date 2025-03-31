@@ -167,54 +167,34 @@ serve(async (req) => {
 
     console.log('Inserting report into database');
 
-    // First, let's run the migration to ensure the column exists
-    try {
-      const { error: migrationError } = await supabase.rpc('pg_extension', { 
-        query: `
-          DO $$
-          BEGIN
-              IF NOT EXISTS (
-                  SELECT FROM information_schema.columns 
-                  WHERE table_schema = 'public'
-                  AND table_name = 'compliance_reports'
-                  AND column_name = 'is_rag_enabled'
-              ) THEN
-                  ALTER TABLE public.compliance_reports
-                  ADD COLUMN is_rag_enabled BOOLEAN DEFAULT FALSE;
-              END IF;
-          END $$;
-        `
-      });
-
-      if (migrationError) {
-        console.error('Migration error (non-fatal, continuing):', migrationError);
-      }
-    } catch (migrationErr) {
-      console.error('Migration failed (non-fatal, continuing):', migrationErr);
-      // Continue with insert anyway
-    }
-
     // Insert the report into the database
+    const insertData = {
+      title: reportData.title,
+      slug: reportData.slug,
+      summary: reportData.summary,
+      content: reportData.content,
+      country: reportData.country || null,
+      region: reportData.region || null,
+      tags: reportData.tags || [],
+      category: reportData.category || 'General',
+      author: reportData.author || user.email || 'System Generated',
+      cover_image: reportData.cover_image || null,
+      read_time: reportData.read_time || Math.ceil(reportData.summary.length / 1000) + 5,
+      is_featured: reportData.is_featured !== undefined ? reportData.is_featured : false,
+      is_rag_enabled: reportData.is_rag_enabled !== undefined ? reportData.is_rag_enabled : false,
+      published_at: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    console.log('Data being inserted:', {
+      ...insertData,
+      content: '[Content object]', // Don't log full content for brevity
+    });
+
     const { data, error } = await supabase
       .from('compliance_reports')
-      .insert({
-        title: reportData.title,
-        slug: reportData.slug,
-        summary: reportData.summary,
-        content: reportData.content,
-        country: reportData.country || null,
-        region: reportData.region || null,
-        tags: reportData.tags || [],
-        category: reportData.category || 'General',
-        author: reportData.author || user.email || 'System Generated',
-        cover_image: reportData.cover_image || null,
-        read_time: reportData.read_time || Math.ceil(reportData.summary.length / 1000) + 5,
-        is_featured: reportData.is_featured !== undefined ? reportData.is_featured : false,
-        is_rag_enabled: reportData.is_rag_enabled !== undefined ? reportData.is_rag_enabled : false,
-        published_at: new Date().toISOString(),
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
+      .insert(insertData)
       .select();
 
     if (error) {

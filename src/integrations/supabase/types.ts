@@ -19,6 +19,7 @@ export type Database = {
           created_at: string | null
           id: string
           is_featured: boolean | null
+          is_rag_enabled: boolean | null
           published_at: string | null
           read_time: number | null
           region: string | null
@@ -37,6 +38,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           is_featured?: boolean | null
+          is_rag_enabled?: boolean | null
           published_at?: string | null
           read_time?: number | null
           region?: string | null
@@ -55,6 +57,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           is_featured?: boolean | null
+          is_rag_enabled?: boolean | null
           published_at?: string | null
           read_time?: number | null
           region?: string | null

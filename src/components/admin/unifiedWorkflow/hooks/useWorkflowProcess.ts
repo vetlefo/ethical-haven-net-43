@@ -4,6 +4,7 @@ import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { logToTerminal } from '@/utils/terminalLogger';
 import { ProcessStatus } from '../Steps';
+import { getSupabaseAnonKey, getEdgeFunctionUrl } from '@/utils/supabaseConfig';
 
 export const useWorkflowProcess = () => {
   const [rawContent, setRawContent] = useState('');
@@ -74,8 +75,8 @@ export const useWorkflowProcess = () => {
       logToTerminal(`Sending request to generate-report with payload: ${JSON.stringify(requestPayload, null, 2)}`);
       
       // Use a direct fetch call with proper headers to ensure correct content type
-      const apiUrl = `${supabase.supabaseUrl}/functions/v1/generate-report`;
-      const supabaseKey = supabase.supabaseKey;
+      const apiUrl = getEdgeFunctionUrl('generate-report');
+      const supabaseKey = getSupabaseAnonKey();
       
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -136,7 +137,7 @@ export const useWorkflowProcess = () => {
       logToTerminal(`Report has is_rag_enabled flag set to: ${parsedReport.is_rag_enabled}`);
       
       // Use the direct fetch approach for more control over the request
-      const storeUrl = `${supabase.supabaseUrl}/functions/v1/store-report`;
+      const storeUrl = getEdgeFunctionUrl('store-report');
       
       const storeResponse = await fetch(storeUrl, {
         method: 'POST',

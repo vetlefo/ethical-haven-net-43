@@ -4,6 +4,7 @@ import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { logToTerminal } from '@/utils/terminalLogger';
 import { ProcessStatus } from '@/components/admin/unifiedWorkflow/Steps';
+import { getSupabaseAnonKey, getEdgeFunctionUrl } from '@/utils/supabaseConfig';
 
 export type ResultData = {
   documentId: string;
@@ -70,8 +71,8 @@ export const useContentProcessing = () => {
       }
 
       // Use direct fetch for more reliable calls to Supabase Edge Functions
-      const apiUrl = `${supabase.supabaseUrl}/functions/v1/generate-report`;
-      const supabaseKey = supabase.supabaseKey;
+      const apiUrl = getEdgeFunctionUrl('generate-report');
+      const supabaseKey = getSupabaseAnonKey();
       
       const generateReportPayload = {
         prompt: rawContent,
@@ -148,7 +149,7 @@ export const useContentProcessing = () => {
         generateEmbeddings: true // Explicitly request embeddings
       };
       
-      const embeddingResponse = await fetch(`${supabase.supabaseUrl}/functions/v1/process-for-rag`, {
+      const embeddingResponse = await fetch(getEdgeFunctionUrl('process-for-rag'), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${authToken}`,
@@ -185,7 +186,7 @@ export const useContentProcessing = () => {
 
       logToTerminal(`Calling 'store-report' function...`);
       
-      const storeResponse = await fetch(`${supabase.supabaseUrl}/functions/v1/store-report`, {
+      const storeResponse = await fetch(getEdgeFunctionUrl('store-report'), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${authToken}`,
